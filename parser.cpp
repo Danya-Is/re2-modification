@@ -76,7 +76,7 @@ void Regexp::doCollapse() {
             if (new_re->sub_regexps.size() == 1) {
                 new_re = new_re->sub_regexps.back();
             }
-            new_alt->sub_regexps.push_back(&(*new_re));
+            new_alt->sub_regexps.push_front(&(*new_re));
             new_re = new Regexp();
             new_re->regexp_type = concatenationExpr;
         }

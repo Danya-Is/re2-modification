@@ -1,3 +1,5 @@
+#include <utility>
+
 #include "edge.h"
 #include "list"
 
@@ -13,6 +15,9 @@ public:
 
     Node() {
         name = "";
+    }
+    Node(string name) {
+        this->name = std::move(name);
     }
 };
 
