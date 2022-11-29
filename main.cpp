@@ -11,8 +11,9 @@ int main() {
     cin >> regex;
     Regexp* re = Regexp::parse_regexp(regex);
     BinaryTree* binary_tree = re->to_binary_tree();
-    Automata* automata = binary_tree->toThomson();
-    automata->makeDOTFile();
-    automata->draw();
+    Automata* thompson = binary_tree->toThomson();
+    thompson->draw("thompson");
+    Automata* glushkov = binary_tree->toGlushkov();
+    glushkov->draw("glushkov");
     return 0;
 }

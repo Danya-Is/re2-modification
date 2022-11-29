@@ -22,7 +22,7 @@ void Automata::changeFinalState(Node *new_final) {
     }
 }
 
-void Automata::makeDOTFile() {
+void Automata::makeDOTFile(const string& filename) {
     string text = "digraph g {\n";
     int i = 0;
     for (auto *node: nodes) {
@@ -44,23 +44,24 @@ void Automata::makeDOTFile() {
     text += "}";
 
     ofstream out;
-    out.open("automata.dot");
+    out.open(filename + ".dot");
     if (out.is_open()) {
         out << text;
     }
     out.close();
 }
 
-bool Automata::draw()
+bool Automata::draw(const string& filename)
 {
+    makeDOTFile(filename);
     GVC_t *gvc;
     Agraph_t *g;
     FILE *fp;
     gvc = gvContext();
-    fp = fopen("automata.dot", "r");
+    fp = fopen((filename + ".dot").c_str(), "r");
     g = agread(fp, 0);
     gvLayout(gvc, g, "dot");
-    gvRender(gvc, g, "png", fopen("automata.png", "w"));
+    gvRender(gvc, g, "png", fopen((filename + ".png").c_str(), "w"));
     gvFreeLayout(gvc, g);
     agclose(g);
     return (gvFreeContext(gvc));

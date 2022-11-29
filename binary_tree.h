@@ -18,11 +18,10 @@ public:
             BinaryTree* right;
         }; // concatenation and alternation
         BinaryTree* child; // Kleene
-        struct {
-            char rune;
-            string name;
-        }; // literal
+        char rune; // literal
     };
+
+    string name;
 
     bool epsilonProducing();
     list<string> linearize(int&);

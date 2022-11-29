@@ -24,9 +24,9 @@ public:
         last_idx = 0;
     }
 
-    void makeDOTFile();
+    void makeDOTFile(const string& filename);
 
-    bool draw();
+    bool draw(const string& filename);
 
     void changeFinalState(Node *new_final);
 };
