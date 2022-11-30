@@ -164,6 +164,32 @@ set<pair<string, string>> BinaryTree::doFOLLOW() {
     return follow;
 }
 
+std::string substr(std::string originalString, int maxLength)
+{
+    std::string resultString = originalString;
+
+    int len = 0;
+    int byteCount = 0;
+
+    const char* aStr = originalString.c_str();
+
+    while(*aStr)
+    {
+        if( (*aStr & 0xc0) != 0x80 )
+            len += 1;
+
+        if(len>maxLength)
+        {
+            resultString = resultString.substr(0, byteCount);
+            break;
+        }
+        byteCount++;
+        aStr++;
+    }
+
+    return resultString;
+}
+
 Automata *BinaryTree::toGlushkov() {
     auto* automata = new Automata();
 
@@ -179,8 +205,8 @@ Automata *BinaryTree::toGlushkov() {
     auto last = doLAST();
     auto follow = doFOLLOW();
 
-    for(const auto& name: first) {
-        string by(&name[0]);
+    for(auto name: first) {
+        string by = substr(name, 1);
         automata->start->edges.push_back(new Edge(by, named_nodes[name]));
     }
 
@@ -188,13 +214,13 @@ Automata *BinaryTree::toGlushkov() {
         automata->finish = named_nodes[last.back()];
     }
     else {
-        for(const auto& name: last) {
+        for(auto name: last) {
             named_nodes[name]->edges.push_back(new Edge("", automata->finish));
         }
     }
 
     for (auto p: follow) {
-        string by(&p.second[0]);
+        string by = substr(p.second, 1);
         named_nodes[p.first]->edges.push_back(new Edge(by, named_nodes[p.second]));
     }
     return automata;
