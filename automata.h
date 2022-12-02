@@ -29,6 +29,8 @@ public:
     bool draw(const string& filename);
 
     void changeFinalState(Node *new_final);
+
+    bool isDeterministic();
 };
 
 #endif //COURSEWORK_AUTOMATA_H

@@ -1,6 +1,7 @@
 #include "automata.h"
 #include <string>
 #include <fstream>
+#include <map>
 #include <graphviz/gvc.h>
 
 using namespace std;
@@ -65,4 +66,18 @@ bool Automata::draw(const string& filename)
     gvFreeLayout(gvc, g);
     agclose(g);
     return (gvFreeContext(gvc));
+}
+
+bool Automata::isDeterministic() {
+    map<pair<Node*, string>, int> transition_amount;
+    for (auto *node: nodes) {
+        for (auto *edge: node->edges) {
+            auto transition = make_pair(node, edge->by);
+            transition_amount[transition] += 1;
+            if (transition_amount[transition] > 1) {
+                return false;
+            }
+        }
+    }
+    return true;
 }
