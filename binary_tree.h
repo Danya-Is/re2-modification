@@ -10,6 +10,9 @@
 class BinaryTree {
 public:
     BinaryTree() {}
+    BinaryTree(RegexpType type) {
+        this->type = type;
+    }
 
     RegexpType type;
     union {
@@ -20,7 +23,7 @@ public:
         BinaryTree* child; // Kleene
         char rune; // literal
     };
-
+    string variable; // reference and backreferenceExpr
     string name;
 
     bool epsilonProducing();
@@ -31,7 +34,10 @@ public:
 
     Automata* toThomson();
     Automata* toGlushkov();
+    MFA* toMFA();
 };
+
+std::string substr(std::string originalString, int maxLength);
 
 
 #endif //COURSEWORK_BINARY_TREE_H

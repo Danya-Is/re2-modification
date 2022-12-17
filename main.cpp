@@ -11,9 +11,11 @@ int main() {
     cin >> regex;
     Regexp* re = Regexp::parse_regexp(regex);
     BinaryTree* binary_tree = re->to_binary_tree();
-    Automata* thompson = binary_tree->toThomson();
-    thompson->draw("thompson");
-    Automata* glushkov = binary_tree->toGlushkov();
-    glushkov->draw("glushkov");
+    MFA* mfa = binary_tree->toMFA();
+    mfa->draw("mfa");
+//    Automata* thompson = binary_tree->toThomson();
+//    thompson->draw("thompson");
+//    Automata* glushkov = binary_tree->toGlushkov();
+//    glushkov->draw("glushkov");
     return 0;
 }

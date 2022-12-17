@@ -7,8 +7,15 @@ BinaryTree *Regexp::to_binary_tree() {
     if (regexp_type == literal) {
         tr->rune = rune;
     }
+    else if (regexp_type == reference) {
+        tr->variable = variable;
+    }
     else if (regexp_type == kleeneStar) {
         tr->child = sub_regexp->to_binary_tree();
+    }
+    else if (regexp_type == backreferenceExpr) {
+        tr->child = sub_regexp->to_binary_tree();
+        tr->variable = variable;
     }
     else {
         if (sub_regexps.size() < 2) {
@@ -19,7 +26,8 @@ BinaryTree *Regexp::to_binary_tree() {
             tr->right = sub_regexps.back()->to_binary_tree();;
         }
         else {
-            tr->left = sub_regexps.front()->to_binary_tree();
+            auto* sub_r = sub_regexps.front();
+            tr->left = sub_r->to_binary_tree();
             list<Regexp*> new_sub_regexps(sub_regexps.begin(), sub_regexps.end());
             new_sub_regexps.pop_front();
             auto* re = new Regexp();

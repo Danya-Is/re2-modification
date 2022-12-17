@@ -21,4 +21,17 @@ public:
     }
 };
 
+class MemoryNode {
+public:
+    list<MemoryEdge*> edges;
+    string name;
+
+    MemoryNode() {
+        name = "";
+    }
+    MemoryNode(string name) {
+        this->name = std::move(name);
+    }
+};
+
 #endif //COURSEWORK_NODE_H
