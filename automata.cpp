@@ -1,7 +1,12 @@
 #include "automata.h"
+#include <stdio.h>
+#include <iostream>
+#include <algorithm>
 #include <string>
 #include <fstream>
 #include <map>
+#include <set>
+#include <vector>
 #include <graphviz/gvc.h>
 
 using namespace std;
@@ -21,6 +26,7 @@ void Automata::changeFinalState(Node *new_final) {
             break;
         }
     }
+    start->start_for = new_final;
 }
 
 void Automata::makeDOTFile(const string& filename) {
@@ -34,15 +40,20 @@ void Automata::makeDOTFile(const string& filename) {
             if (edge->to->name.empty()) {
                 edge->to->name = to_string(last_idx++);
             }
+            string by = edge->by;
             if (edge->by.empty()) {
-                edge->by = "ε";
+                by = "ε";
+            }
+            if (edge->by == ".") {
+                by = "dot";
             }
             if (!edge->drawn) {
-                text += "\t" + node->name + " -> " + edge->to->name + " [label=" + edge->by + "]\n";
+                text += "\t" + node->name + " -> " + edge->to->name + " [label=" + by + "]\n";
             }
         }
     }
     text += "}";
+//    cout << text << "\n";
 
     ofstream out;
     out.open(filename + ".dot");
@@ -80,4 +91,138 @@ bool Automata::isDeterministic() {
         }
     }
     return true;
+}
+
+void Automata::evaluateState(Node* state, std::string letter, int letter_index,
+                             set<Node *> &new_states, set<Node *> &visited_states,
+                             map<Node *, set<int>> &start_indexes, map<Node*, set<int>> &finish_indexes) {
+    if (state->finish_for) {
+        finish_indexes[state].insert(letter_index);
+    }
+    if (state->start_for) {
+        start_indexes[state].insert(letter_index);
+    }
+    if (letter.empty() && state->edges.empty()) {
+        new_states.insert(state);
+    }
+    else {
+        for (auto *edge: state->edges) {
+            if (edge->by.empty()) {
+                evaluateState(edge->to, letter, letter_index, new_states, visited_states, start_indexes, finish_indexes);
+            }
+            else if (!letter.empty() && (edge->by == "." or edge->by == letter)) {
+                new_states.insert(edge->to);
+            }
+        }
+    }
+}
+
+void Automata::evaluateStates(string letter, int letter_index,
+                              set<Node*> &states, set<Node*> &visited_states,
+                              map<Node *, set<int>> &start_indexes, map<Node*, set<int>> &finish_indexes) {
+    set<Node*> new_states;
+    for (auto *node: states) {
+        if (visited_states.find(node) == visited_states.end()) {
+            visited_states.insert(node);
+            evaluateState(node, letter, letter_index, new_states, visited_states, start_indexes, finish_indexes);
+        }
+    }
+    states = new_states;
+}
+
+
+
+//pair<int, int> Automata::matchThomson(string str) {
+//    set<Node*> states;
+//    map<Node*, set<int>> finish_indexes;
+//    map<Node*, set<int>> start_indexes;
+//    states.insert(start);
+//    int str_len = str.length();
+//    for (int i = 0; i < str_len; i++) {
+//        string by = str.substr(i, 1);
+//        set<Node*> visited_states;
+//        evaluateStates(by, i, states, visited_states, start_indexes, finish_indexes);
+//    }
+//    set<Node*> visited_states;
+//    evaluateStates("", str_len - 1, states, visited_states, start_indexes, finish_indexes);
+//
+//    cout << "starts" << endl;
+//    for (auto it: start_indexes) {
+//        std::string s = std::to_string(*it.second.begin());
+//
+//        std::for_each(std::next(it.second.begin()), it.second.end(), [&s] (int val) {
+//            s.append(", ").append(std::to_string(val));
+//        });
+//        cout << it.first->name + " - " + s << endl;
+//    }
+//    cout << "finishes" << endl;
+//    for (auto it: finish_indexes) {
+//        std::string s = std::to_string(*it.second.begin());
+//
+//        std::for_each(std::next(it.second.begin()), it.second.end(), [&s] (int val) {
+//            s.append(", ").append(std::to_string(val));
+//        });
+//        cout << it.first->name + " - " + s << endl;
+//    }
+//
+//    for (auto *state: states) {
+//        if (state == finish) {
+//            vector<int> s_indexes(start_indexes[start->start_for].begin(), start_indexes[start->start_for].end());
+//            sort(s_indexes.begin(), s_indexes.end());
+//            vector<int> f_indexes(finish_indexes[finish->finish_for].begin(), finish_indexes[finish->finish_for].end());
+//            sort(f_indexes.begin(), f_indexes.end());
+//            return make_pair(s_indexes[0], f_indexes[0]);
+//        }
+//    }
+//    return make_pair(-1, -1);
+//}
+
+bool Automata::matchThomson(string str) {
+    set<Node*> states;
+    map<Node*, set<int>> finish_indexes;
+    map<Node*, set<int>> start_indexes;
+    states.insert(start);
+    int str_len = str.length();
+    for (int i = 0; i < str_len; i++) {
+        string by = str.substr(i, 1);
+        set<Node*> visited_states;
+        evaluateStates(by, i, states, visited_states, start_indexes, finish_indexes);
+    }
+    set<Node*> visited_states;
+    evaluateStates("", str_len - 1, states, visited_states, start_indexes, finish_indexes);
+
+    cout << "starts" << endl;
+    for (auto it: start_indexes) {
+        std::string s = std::to_string(*it.second.begin());
+
+        std::for_each(std::next(it.second.begin()), it.second.end(), [&s] (int val) {
+            s.append(", ").append(std::to_string(val));
+        });
+        cout << it.first->name + " - " + s << endl;
+    }
+    cout << "finishes" << endl;
+    for (auto it: finish_indexes) {
+        std::string s = std::to_string(*it.second.begin());
+
+        std::for_each(std::next(it.second.begin()), it.second.end(), [&s] (int val) {
+            s.append(", ").append(std::to_string(val));
+        });
+        cout << it.first->name + " - " + s << endl;
+    }
+
+    for (auto *state: states) {
+        if (state == finish) {
+            return true;
+//            vector<int> s_indexes(start_indexes[start->start_for].begin(), start_indexes[start->start_for].end());
+//            sort(s_indexes.begin(), s_indexes.end());
+//            vector<int> f_indexes(finish_indexes[finish->finish_for].begin(), finish_indexes[finish->finish_for].end());
+//            sort(f_indexes.begin(), f_indexes.end());
+//            return make_pair(s_indexes[0], f_indexes[0]);
+        }
+    }
+    return false;
+}
+
+bool Automata::matchGlushkov(string str) {
+    return matchThomson(str);
 }

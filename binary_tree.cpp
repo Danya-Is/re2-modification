@@ -11,6 +11,9 @@ Automata *BinaryTree::toThomson() {
     if (type == literal) {
         string s(&rune);
         automata->start->edges.push_back(new Edge(s, automata->finish));
+
+        automata->finish->finish_for = automata->start;
+        automata->start->start_for = automata->finish;
     }
     else if (type == alternationExpr) {
         Automata* first_automata = left->toThomson();
@@ -23,15 +26,19 @@ Automata *BinaryTree::toThomson() {
 
         automata->nodes.merge(first_automata->nodes);
         automata->nodes.merge(second_automata->nodes);
+
+        automata->finish->finish_for = automata->start;
+        automata->start->start_for = automata->finish;
     }
     else if (type == concatenationExpr) {
         Automata* first_automata = left->toThomson();
         Automata* second_automata = right->toThomson();
 
-        first_automata->nodes.merge(second_automata->nodes);
+        second_automata->start->finish_for = first_automata->finish->finish_for;
         first_automata->changeFinalState(second_automata->start);
 
         automata = first_automata;
+        automata->nodes.merge(second_automata->nodes);
         automata->finish = second_automata->finish;
     }
     else if (type == kleeneStar) {
@@ -43,10 +50,14 @@ Automata *BinaryTree::toThomson() {
 
         automata->start->edges.push_back(new Edge("", old->start));
         automata->start->edges.push_back(new Edge("", automata->finish));
+
+        automata->finish->finish_for = automata->start;
+        automata->start->start_for = automata->finish;
     }
     else {
         printf("UNKNOWN BINARY TREE TYPE!!!!!");
     }
+
     return automata;
 }
 
@@ -224,6 +235,8 @@ Automata *BinaryTree::toGlushkov() {
         string by = substr(p.second, 1);
         named_nodes[p.first]->edges.push_back(new Edge(by, named_nodes[p.second]));
     }
+
+//    automata->draw("glushkov");
     return automata;
 }
 

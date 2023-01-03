@@ -13,6 +13,9 @@ public:
     list<Edge*> edges;
     string name;
 
+    Node* finish_for;
+    Node* start_for;
+
     Node() {
         name = "";
     }

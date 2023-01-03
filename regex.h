@@ -83,5 +83,7 @@ public:
     BinaryTree* to_binary_tree();
 };
 
+void match(string regexp_str);
+
 
 #endif //COURSEWORK_REGEX_H
