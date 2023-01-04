@@ -9,12 +9,15 @@
 using namespace std;
 
 void match(string regexp_str) {
-    regexp_str = ".*" + regexp_str + ".*";
+//    regexp_str = ".*" + regexp_str + ".*";
     Regexp* regexp = Regexp::parse_regexp(regexp_str);
     BinaryTree* bt = regexp->to_binary_tree();
 //    Automata* glushkov = bt->toGlushkov();
-    Automata* thomson = bt->toThomson();
-    thomson->draw("thomson");
+//    Automata* thomson = bt->toThomson();
+//    thomson->draw("thomson");
+
+    MFA* mfa = bt->toMFA();
+    mfa->draw("mfa");
 
     string text;
     cin >> text;
@@ -26,7 +29,7 @@ void match(string regexp_str) {
 //    else {
 //        match = glushkov->matchThomson(text);
 //    }
-        match = thomson->matchThomson(std::move(text));
+        match = mfa->matchMFA(std::move(text));
         cout << match << endl;
         cin >> text;
     }

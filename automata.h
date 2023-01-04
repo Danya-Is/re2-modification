@@ -65,6 +65,18 @@ public:
 
     void changeFinalState(MemoryNode *new_final);
 
+    bool matchMFA(string str);
+
+    void
+    evaluateStates(string letter, int letter_index, set<MemoryNode *> &states, set<MemoryNode *> &visited_states,
+                        map<MemoryEdge*, int> &edge_positions);
+
+    void
+    evaluateState(MemoryNode *state, string letter, int letter_index, set<MemoryNode *> &new_states, set<MemoryNode *> &visited_states,
+                  map<MemoryEdge*, int> &edge_positions);
+
+    void doMemoryWriteActions(std::string letter, MemoryEdge* edge);
+
     void makeDOTFile(const string &filename);
 
     bool draw(const string &filename);
