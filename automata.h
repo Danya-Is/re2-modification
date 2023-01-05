@@ -9,6 +9,9 @@
 #ifndef COURSEWORK_AUTOMATA_H
 #define COURSEWORK_AUTOMATA_H
 
+#define Memory map<string, Variable*>
+#define MemoryState pair<int, pair<MemoryNode*, Memory>>
+
 using namespace std;
 
 
@@ -49,8 +52,6 @@ public:
 
 class MFA : public Automata {
 public:
-    map<string, Variable> memory;
-
     MemoryNode* start;
     MemoryNode* finish;
     list<MemoryNode*> nodes;
@@ -68,14 +69,14 @@ public:
     bool matchMFA(string str);
 
     void
-    evaluateStates(string letter, int letter_index, set<MemoryNode *> &states, set<MemoryNode *> &visited_states,
-                        map<MemoryEdge*, int> &edge_positions);
+    evaluateStates(string str, int letter_index, set<MemoryState> &states,
+                   set<MemoryNode*> &visited_states);
 
     void
-    evaluateState(MemoryNode *state, string letter, int letter_index, set<MemoryNode *> &new_states, set<MemoryNode *> &visited_states,
-                  map<MemoryEdge*, int> &edge_positions);
+    evaluateState(MemoryState state, string str, int letter_index, set<MemoryState> &new_states,
+                  set<MemoryNode*> &visited_states);
 
-    void doMemoryWriteActions(std::string letter, MemoryEdge* edge);
+    static void doMemoryWriteActions(std::string letter, MemoryEdge* edge, MemoryState &state);
 
     void makeDOTFile(const string &filename);
 

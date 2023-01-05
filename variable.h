@@ -10,6 +10,13 @@ public:
     bool is_open = false;
     string value;
 
+    Variable(bool is_open, string value) {
+        this->is_open = is_open;
+        this->value = value;
+    }
+
+    Variable() = default;
+
     void open() {
         is_open = true;
     }

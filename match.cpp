@@ -16,6 +16,9 @@ void match(string regexp_str) {
 //    Automata* thomson = bt->toThomson();
 //    thomson->draw("thomson");
 
+    MemoryState old_state;
+    auto new_state1 = make_pair(1, make_pair(old_state.second.first, old_state.second.second));
+
     MFA* mfa = bt->toMFA();
     mfa->draw("mfa");
 
