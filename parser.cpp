@@ -49,10 +49,13 @@ Regexp* Regexp::parse_regexp(string &s) {
             new_re->variable = name;
             regexp->sub_regexps.push_back(new_re);
         }
-        else {
+        else if (c >= 'a' and c <= 'z') {
             auto* re = new Regexp(literal);
             re->rune = c;
             regexp->sub_regexps.push_back(re);
+        }
+        else {
+            printf("Unexpected literal %c", c);
         }
         s.erase(0, 1);
     }

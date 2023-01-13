@@ -2,7 +2,7 @@
 #include <string>
 #include <fstream>
 #include <map>
-#include <graphviz/gvc.h>
+//#include <graphviz/gvc.h>
 
 using namespace std;
 
@@ -60,16 +60,16 @@ void MFA::makeDOTFile(const string& filename) {
 
 bool MFA::draw(const string& filename)
 {
-    makeDOTFile(filename);
-    GVC_t *gvc;
-    Agraph_t *g;
-    FILE *fp;
-    gvc = gvContext();
-    fp = fopen((filename + ".dot").c_str(), "r");
-    g = agread(fp, 0);
-    gvLayout(gvc, g, "dot");
-    gvRender(gvc, g, "png", fopen((filename + ".png").c_str(), "w"));
-    gvFreeLayout(gvc, g);
-    agclose(g);
-    return (gvFreeContext(gvc));
+//    makeDOTFile(filename);
+//    GVC_t *gvc;
+//    Agraph_t *g;
+//    FILE *fp;
+//    gvc = gvContext();
+//    fp = fopen((filename + ".dot").c_str(), "r");
+//    g = agread(fp, 0);
+//    gvLayout(gvc, g, "dot");
+//    gvRender(gvc, g, "png", fopen((filename + ".png").c_str(), "w"));
+//    gvFreeLayout(gvc, g);
+//    agclose(g);
+//    return (gvFreeContext(gvc));
 }
