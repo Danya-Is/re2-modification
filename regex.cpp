@@ -10,7 +10,7 @@ BinaryTree *Regexp::to_binary_tree() {
     else if (regexp_type == reference) {
         tr->variable = variable;
     }
-    else if (regexp_type == kleeneStar) {
+    else if (regexp_type == kleeneStar || regexp_type == kleenePlus) {
         tr->child = sub_regexp->to_binary_tree();
     }
     else if (regexp_type == backreferenceExpr) {

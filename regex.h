@@ -76,7 +76,7 @@ public:
 
     void doCollapse();
 
-    void doKleene();
+    void doKleene(char c);
 
     void doBackreference(string name);
 

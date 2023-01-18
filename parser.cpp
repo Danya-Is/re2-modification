@@ -11,9 +11,9 @@ Regexp* Regexp::parse_regexp(string &s) {
 
     while (!s.empty()) {
         char c = s[0];
-        if (c == '*') {
+        if (c == '*' || c == '+') {
             onlyLiterals = false;
-            regexp->doKleene();
+            regexp->doKleene(c);
         } else if (c == '(') {
             onlyLiterals = false;
             auto* re = new Regexp(leftParenthesis);
@@ -130,10 +130,14 @@ void Regexp::doCollapse() {
 
 }
 
-void Regexp::doKleene() {
+void Regexp::doKleene(char c) {
     auto* stack_top = sub_regexps.back();
     sub_regexps.pop_back();
-    auto* re = new Regexp(kleeneStar);
+    Regexp* re;
+    if (c == '*')
+        re = new Regexp(kleeneStar);
+    else
+        re = new Regexp(kleenePlus);
     re->sub_regexp = stack_top;
     sub_regexps.push_back(re);
 }
