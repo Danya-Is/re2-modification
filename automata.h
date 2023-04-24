@@ -42,12 +42,10 @@ public:
 
     bool matchGlushkov(string str);
 
-    void evaluateStates(string letter, int letter_index, set<Node *> &states, set<Node *> &visited_states,
-                        map<Node *, set<int>> &start_indexes, map<Node *, set<int>> &finish_indexes);
+    void evaluateStates(string letter, int letter_index, set<Node *> &states, set<Node *> &visited_states);
 
     void
-    evaluateState(Node *state, string letter, int letter_index, set<Node *> &new_states, set<Node *> &visited_states,
-                  map<Node *, set<int>> &start_indexes, map<Node *, set<int>> &finish_indexes);
+    evaluateState(Node *state, string letter, int letter_index, set<Node *> &new_states, set<Node *> &visited_states);
 };
 
 class MFA : public Automata {

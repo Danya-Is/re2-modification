@@ -73,7 +73,7 @@ list<string> BinaryTree::linearize(int &start_idx) {
         literals.merge(left->linearize(start_idx));
         literals.merge(right->linearize(start_idx));
     }
-    else if (type == kleeneStar) {
+    else if (type == kleeneStar || type == kleenePlus) {
         literals.merge(child->linearize(start_idx));
     }
 
@@ -81,7 +81,7 @@ list<string> BinaryTree::linearize(int &start_idx) {
 }
 
 bool BinaryTree::epsilonProducing() {
-    if (type == literal) {
+    if (type == literal && type == kleenePlus) {
         return false;
     }
     else if (type == alternationExpr) {
@@ -236,7 +236,6 @@ Automata *BinaryTree::toGlushkov() {
         named_nodes[p.first]->edges.push_back(new Edge(by, named_nodes[p.second]));
     }
 
-//    automata->draw("glushkov");
     return automata;
 }
 
@@ -307,10 +306,17 @@ MFA* BinaryTree::toMFA() {
                     auto end = start_edges.end();
                     end--;
                     for (auto i = start_edges.begin(); i != end; i++) {
-                        new_edges.push_back(new MemoryEdge(edge->by + (*i)->by, (*i)->to));
+                        auto new_edge = new MemoryEdge(edge->by + (*i)->by, (*i)->to);
+                        for (const auto& action: (*i)->memoryActions) {
+                            new_edge->memoryActions[action.first] = action.second;
+                        }
+                        new_edges.push_back(new_edge);
                     }
                     edge->to = (*end)->to;
                     edge->by = edge->by + (*end)->by;
+                    for (const auto& action: (*end)->memoryActions) {
+                        edge->memoryActions[action.first] = action.second;
+                    }
                 }
             }
             node->edges.merge(new_edges);
@@ -358,9 +364,14 @@ MFA* BinaryTree::toMFA() {
         for (auto new_edge_pair: new_edges) {
             auto* final_edge = new_edge_pair.first.second;
             auto* start_edge = new_edge_pair.second;
-            new_edge_pair.first.first->edges.push_back(
-                    new MemoryEdge(final_edge->by + start_edge->by, start_edge->to)
-            );
+            auto* new_edge = new MemoryEdge(final_edge->by + start_edge->by, start_edge->to);
+            for (const auto& action: final_edge->memoryActions) {
+                new_edge->memoryActions[action.first] = action.second;
+            }
+            for (const auto& action: start_edge->memoryActions) {
+                new_edge->memoryActions[action.first] = action.second;
+            }
+            new_edge_pair.first.first->edges.push_back(new_edge);
         }
     }
 

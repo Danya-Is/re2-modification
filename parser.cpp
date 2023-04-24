@@ -7,31 +7,35 @@ using namespace std;
 
 Regexp* Regexp::parse_regexp(string &s) {
     auto* regexp = new Regexp(rootExpr);
-    bool onlyLiterals = true;
 
     while (!s.empty()) {
         char c = s[0];
         if (c == '*' || c == '+') {
-            onlyLiterals = false;
             regexp->doKleene(c);
         } else if (c == '(') {
-            onlyLiterals = false;
             auto* re = new Regexp(leftParenthesis);
             regexp->sub_regexps.push_back(re);
         } else if (c == '|') {
-            onlyLiterals = false;
             regexp->doConcatenation();
         } else if (c == ')') {
-            onlyLiterals = false;
             regexp->doCollapse();
         }
+        else if (c == '['){
+            auto* re = new Regexp(leftSquareBr);
+            regexp->sub_regexps.push_back(re);
+        }
+        else if (c == ']') {
+            regexp->doEnumeration();
+        }
+        else if (c == '-') {
+            auto* re = new Regexp(dash);
+            regexp->sub_regexps.push_back(re);
+        }
         else if (c == '{') {
-            onlyLiterals = false;
             auto* re = new Regexp(leftBrace);
             regexp->sub_regexps.push_back(re);
         }
         else if (c == '}') {
-            onlyLiterals = false;
             s.erase(0, 1);
             string tmp = substr(s, 1);
             if (tmp != ":") {
@@ -42,14 +46,13 @@ Regexp* Regexp::parse_regexp(string &s) {
             regexp->doBackreference(name);
         }
         else if (c == '&') {
-            onlyLiterals = false;
             s.erase(0, 1);
             string name  = substr(s, 1);
             auto* new_re = new Regexp(reference);
             new_re->variable = name;
             regexp->sub_regexps.push_back(new_re);
         }
-        else if (c >= 'a' and c <= 'z') {
+        else if ((c >= 'a' and c <= 'z') or c == '.') {
             auto* re = new Regexp(literal);
             re->rune = c;
             regexp->sub_regexps.push_back(re);
@@ -59,7 +62,7 @@ Regexp* Regexp::parse_regexp(string &s) {
         }
         s.erase(0, 1);
     }
-    if (onlyLiterals && regexp->sub_regexps.size() == 1) {
+    if (regexp->sub_regexps.size() == 1 && regexp->sub_regexps.front()->regexp_type == literal) {
         char c = regexp->sub_regexps.back()->rune;
         regexp->rune = c;
         regexp->regexp_type = literal;
@@ -163,5 +166,37 @@ void Regexp::doBackreference(string name) {
         printf("PARSER: Backreference can not have more than one subregex");
     }
 
+    sub_regexps.push_back(new_re);
+}
+
+void Regexp::doEnumeration() {
+    Regexp* stack_top = sub_regexps.back();
+    auto* new_re = new Regexp(alternationExpr);
+    while (stack_top->regexp_type != leftSquareBr) {
+        if (stack_top->regexp_type == literal) {
+            new_re->sub_regexps.push_front(stack_top);
+        } else if (stack_top->regexp_type == dash) {
+            Regexp* last_literal = new_re->sub_regexps.front();
+            new_re->sub_regexps.pop_front();
+            sub_regexps.pop_back();
+            Regexp* first_literal = sub_regexps.back();
+            char c = first_literal->rune;
+            while (c <= last_literal->rune) {
+                auto* new_sub = new Regexp(literal);
+                new_sub->rune = c;
+                new_re->sub_regexps.push_front(new_sub);
+                c = char(int(c) + 1);
+            }
+        } else {
+            printf("PARSER: Expected dash or literal inside enumeration");
+        }
+
+        sub_regexps.pop_back();
+        stack_top = sub_regexps.back();
+    }
+    sub_regexps.pop_back();
+    if (new_re->sub_regexps.size() == 1) {
+        new_re = new_re->sub_regexps.back();
+    }
     sub_regexps.push_back(new_re);
 }

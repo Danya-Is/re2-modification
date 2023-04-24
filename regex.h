@@ -22,6 +22,15 @@ enum RegexpType {
     // '}'
     rightBrace,
 
+    // '['
+    leftSquareBr,
+
+    // ']'
+    rightSquareBr,
+
+    // '-'
+    dash,
+
     // '*'
     kleeneStar,
 
@@ -80,10 +89,15 @@ public:
 
     void doBackreference(string name);
 
+    void doEnumeration();
+
     BinaryTree* to_binary_tree();
 };
 
 void match(string regexp_str);
 
+void match_gt(string regexp_str);
+
+void match_mfa(string regexp_str);
 
 #endif //COURSEWORK_REGEX_H
