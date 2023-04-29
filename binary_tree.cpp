@@ -215,6 +215,7 @@ BinaryTree* BinaryTree::checkEpsChilds() {
         return left;
     }
     else {
+        this->epsilon_producing = right->epsilon_producing || left->epsilon_producing;
         return this;
     }
 }
