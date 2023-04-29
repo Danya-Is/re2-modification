@@ -12,6 +12,8 @@ void match(string regexp_str) {
 //    regexp_str = ".*" + regexp_str + ".*";
     Regexp* regexp = Regexp::parse_regexp(regexp_str);
     BinaryTree* bt = regexp->to_binary_tree();
+
+    bt = bt->toSSNF();
     Automata* glushkov = bt->toGlushkov();
     Automata* thomson = bt->toThomson();
     thomson->draw("thomson");

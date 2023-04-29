@@ -26,11 +26,19 @@ public:
     string variable; // reference and backreferenceExpr
     string name;
 
+    // using for constructing ssnf
+    bool epsilon_producing = false;
+
     bool epsilonProducing();
     list<string> linearize(int&);
     list<string> doFIRST();
     list<string> doLAST();
     set<pair<string, string>> doFOLLOW();
+
+    BinaryTree* toSSNF();
+    BinaryTree* toSSNF_();
+    BinaryTree* underKleene();
+    BinaryTree* checkEpsChilds();
 
     Automata* toThomson();
     Automata* toGlushkov();

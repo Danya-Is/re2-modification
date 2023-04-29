@@ -52,7 +52,11 @@ Regexp* Regexp::parse_regexp(string &s) {
             new_re->variable = name;
             regexp->sub_regexps.push_back(new_re);
         }
-        else if ((c >= 'a' and c <= 'z') or c == '.') {
+        else if (c == 'e') {
+            auto* re = new Regexp(epsilon);
+            regexp->sub_regexps.push_back(re);
+        }
+        else if ((c >= 'a' and c <= 'z' and c != 'e') or c == '.') {
             auto* re = new Regexp(literal);
             re->rune = c;
             regexp->sub_regexps.push_back(re);
