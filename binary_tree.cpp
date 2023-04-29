@@ -292,9 +292,6 @@ BinaryTree* BinaryTree::toSSNF_() {
         new_t->left = left->toSSNF_();
         new_t->right = right->toSSNF_();
         new_t = new_t->checkEpsChilds();
-        if (new_t->left->epsilon_producing || new_t->right->epsilon_producing) {
-            new_t->epsilon_producing = true;
-        }
         return new_t;
     }
     else if (type == kleeneStar or type == kleenePlus) {
