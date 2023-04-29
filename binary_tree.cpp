@@ -244,18 +244,18 @@ BinaryTree* BinaryTree::underKleene() {
             new_t->right = right;
             return new_t;
         }
-        else if (left_eps && right_eps) {
-            auto* new_t = new BinaryTree(concatenationExpr);
-            new_t->left = left->underKleene();
-            new_t->right = right;
-//            auto* new_t_ = new BinaryTree(kleeneStar);
-//            new_t_->child = right;
-//            new_t_ = new_t_->toSSNF();
-//            new_t->right = new_t_->child;
-
-            new_t = new_t->checkEpsChilds();
-            return new_t;
-        }
+//        else if (left_eps && right_eps) {
+//            auto* new_t = new BinaryTree(concatenationExpr);
+//            new_t->left = left->underKleene();
+//            new_t->right = right;
+////            auto* new_t_ = new BinaryTree(kleeneStar);
+////            new_t_->child = right;
+////            new_t_ = new_t_->toSSNF();
+////            new_t->right = new_t_->child;
+//
+//            new_t = new_t->checkEpsChilds();
+//            return new_t;
+//        }
         else {
             auto* new_t = new BinaryTree(alternationExpr);
             new_t->left = left->toSSNF_();
@@ -282,18 +282,18 @@ BinaryTree* BinaryTree::toSSNF_() {
     }
     else if (type == concatenationExpr) {
         auto* new_t = new BinaryTree(concatenationExpr);
-        new_t->left = left->toSSNF();
-        new_t->right = right->toSSNF();
+        new_t->left = left->toSSNF_();
+        new_t->right = right->toSSNF_();
         new_t = new_t->checkEpsChilds();
         return new_t;
     }
     else if (type == alternationExpr) {
         auto* new_t = new BinaryTree(alternationExpr);
-        new_t->left = left->toSSNF();
-        new_t->right = right->toSSNF();
+        new_t->left = left->toSSNF_();
+        new_t->right = right->toSSNF_();
         new_t = new_t->checkEpsChilds();
         if (new_t->left->epsilon_producing || new_t->right->epsilon_producing) {
-            new_t->epsilon_producing;
+            new_t->epsilon_producing = true;
         }
         return new_t;
     }
