@@ -4,7 +4,10 @@
 BinaryTree *Regexp::to_binary_tree() {
     auto* tr = new BinaryTree();
     tr->type = regexp_type;
-    if (regexp_type == literal) {
+    if (regexp_type == epsilon) {
+        return tr;
+    }
+    else if (regexp_type == literal) {
         tr->rune = rune;
     }
     else if (regexp_type == reference) {

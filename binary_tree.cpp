@@ -81,7 +81,10 @@ list<string> BinaryTree::linearize(int &start_idx) {
 }
 
 bool BinaryTree::epsilonProducing() {
-    if (type == literal) {
+    if (type == epsilon) {
+        return true;
+    }
+    else if (type == literal) {
         return false;
     }
     else if (type == kleenePlus) {
@@ -230,41 +233,35 @@ BinaryTree* BinaryTree::underKleene() {
         return new_t;
     }
     else if (type == concatenationExpr) {
-        auto* new_t = new BinaryTree(concatenationExpr);
-        new_t->left = left->underKleene();
-        new_t->right = right->underKleene();
-        new_t = new_t->checkEpsChilds();
-        return new_t;
-    }
-    else if (type == alternationExpr) {
         bool left_eps = left->epsilonProducing();
         bool right_eps = right->epsilonProducing();
         if (!left_eps && !right_eps) {
-            auto* new_t = new BinaryTree(alternationExpr);
+            auto* new_t = new BinaryTree(concatenationExpr);
             new_t->left = left;
             new_t->right = right;
             return new_t;
         }
-//        else if (left_eps && right_eps) {
-//            auto* new_t = new BinaryTree(concatenationExpr);
-//            new_t->left = left->underKleene();
-//            new_t->right = right;
-////            auto* new_t_ = new BinaryTree(kleeneStar);
-////            new_t_->child = right;
-////            new_t_ = new_t_->toSSNF();
-////            new_t->right = new_t_->child;
-//
-//            new_t = new_t->checkEpsChilds();
-//            return new_t;
-//        }
-        else {
+        else if (left_eps && right_eps) {
             auto* new_t = new BinaryTree(alternationExpr);
-            new_t->left = left->toSSNF_();
-            new_t->right = right->toSSNF_();
+            new_t->left = left->underKleene();
+            new_t->right = right->underKleene();
             new_t = new_t->checkEpsChilds();
-            new_t->epsilon_producing = true;
             return new_t;
         }
+        else {
+            auto* new_t = new BinaryTree(concatenationExpr);
+            new_t->left = left->toSSNF();
+            new_t->right = right->toSSNF();
+            return new_t;
+        }
+    }
+    else if (type == alternationExpr) {
+        auto* new_t = new BinaryTree(alternationExpr);
+        new_t->left = left->toSSNF();
+        new_t->right = right->toSSNF();
+        new_t = new_t->checkEpsChilds();
+        new_t->epsilon_producing = true;
+        return new_t;
     }
     else if (type == kleeneStar or type == kleenePlus) {
         auto* new_t = child->underKleene();
@@ -272,7 +269,7 @@ BinaryTree* BinaryTree::underKleene() {
     }
 }
 
-BinaryTree* BinaryTree::toSSNF_() {
+BinaryTree* BinaryTree::toSSNF() {
     if (type == epsilon) {
         return nullptr;
     }
@@ -283,15 +280,15 @@ BinaryTree* BinaryTree::toSSNF_() {
     }
     else if (type == concatenationExpr) {
         auto* new_t = new BinaryTree(concatenationExpr);
-        new_t->left = left->toSSNF_();
-        new_t->right = right->toSSNF_();
+        new_t->left = left->toSSNF();
+        new_t->right = right->toSSNF();
         new_t = new_t->checkEpsChilds();
         return new_t;
     }
     else if (type == alternationExpr) {
         auto* new_t = new BinaryTree(alternationExpr);
-        new_t->left = left->toSSNF_();
-        new_t->right = right->toSSNF_();
+        new_t->left = left->toSSNF();
+        new_t->right = right->toSSNF();
         new_t = new_t->checkEpsChilds();
         return new_t;
     }
@@ -301,21 +298,6 @@ BinaryTree* BinaryTree::toSSNF_() {
         new_t->epsilon_producing = new_t->child->epsilon_producing;
         return new_t;
     }
-}
-
-BinaryTree* BinaryTree::toSSNF() {
-    auto new_t = toSSNF_();
-    if (new_t == nullptr) {
-        new_t = new BinaryTree(epsilon);
-        return new_t;
-    }
-    else if (new_t->epsilon_producing) {
-        auto *new_t_ = new BinaryTree(alternationExpr);
-        new_t_->left = new_t;
-        new_t_->right = new BinaryTree(epsilon);
-        return new_t_;
-    }
-    return new_t;
 }
 
 Automata *BinaryTree::toGlushkov() {

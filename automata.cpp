@@ -97,7 +97,6 @@ bool Automata::isDeterministic() {
 
 void Automata::evaluateState(Node* state, std::string letter, int letter_index,
                              set<Node *> &new_states, set<Node *> &visited_states) {
-    visited_states.insert(state);
     if (letter.empty() && state == finish) {
         new_states.insert(state);
     }
@@ -114,6 +113,7 @@ void Automata::evaluateState(Node* state, std::string letter, int letter_index,
             }
         }
     }
+    visited_states.insert(state);
 }
 
 void Automata::evaluateStates(string letter, int letter_index,
