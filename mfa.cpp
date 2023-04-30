@@ -181,7 +181,7 @@ void MFA::evaluateStates(std::string str, int letter_index, set<MemoryState> &st
     states = new_states;
 }
 
-bool MFA::matchMFA(string str) {
+bool MFA::match(string str) {
     // пары вида <индекс начала соответствующей подстроки для исходящих переходов, нода автомата>
     set<MemoryState> states;
     Memory empty_memory;

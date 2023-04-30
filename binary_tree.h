@@ -26,17 +26,16 @@ public:
     string variable; // reference and backreferenceExpr
     string name;
 
-    // using for constructing ssnf
-    bool epsilon_producing = false;
+    bool have_backreference;
 
     bool epsilonProducing();
+    BinaryTree* reverse();
     list<string> linearize(int&);
     list<string> doFIRST();
     list<string> doLAST();
     set<pair<string, string>> doFOLLOW();
 
     BinaryTree* toSSNF();
-    BinaryTree* toSSNF_();
     BinaryTree* underKleene();
     BinaryTree* checkEpsChilds();
 

@@ -7,6 +7,7 @@ using namespace std;
 
 Regexp* Regexp::parse_regexp(string &s) {
     auto* regexp = new Regexp(rootExpr);
+    regexp->regexp_str = s;
 
     while (!s.empty()) {
         char c = s[0];
@@ -76,6 +77,7 @@ Regexp* Regexp::parse_regexp(string &s) {
     }
     if (regexp->regexp_type == rootExpr && regexp->sub_regexps.size() == 1) {
         auto* child = regexp->sub_regexps.back();
+        child->regexp_str = regexp->regexp_str;
         regexp = child;
     }
     return regexp;

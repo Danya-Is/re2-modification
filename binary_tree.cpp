@@ -81,13 +81,13 @@ list<string> BinaryTree::linearize(int &start_idx) {
 }
 
 bool BinaryTree::epsilonProducing() {
-    if (type == epsilon) {
+    if (type == epsilon || type == kleeneStar) {
         return true;
     }
-    else if (type == literal) {
+    else if (type == literal || type == reference) {
         return false;
     }
-    else if (type == kleenePlus) {
+    else if (type == kleenePlus || type == backreferenceExpr) {
         return child->epsilonProducing();
     }
     else if (type == alternationExpr) {
@@ -96,13 +96,29 @@ bool BinaryTree::epsilonProducing() {
     else if (type == concatenationExpr) {
         return (left->epsilonProducing() && right->epsilonProducing());
     }
-    else if (type == kleeneStar) {
-        return true;
-    }
     else {
         printf("UNKNOWN BINARY TREE TYPE!!!!!");
         return true;
     }
+}
+
+BinaryTree* BinaryTree::reverse() {
+    auto *new_t = new BinaryTree(type);
+    if (type == epsilon || type == literal || type == reference) {
+        return this;
+    }
+    else if (type == kleeneStar || type == kleenePlus || type == backreferenceExpr) {
+        new_t->child = child->reverse();
+    }
+    else if (type == alternationExpr) {
+        new_t->left = left->reverse();
+        new_t->right = right->reverse();
+    }
+    else if (type == concatenationExpr) {
+        new_t->left = right->reverse();
+        new_t->right = left->reverse();
+    }
+    return new_t;
 }
 
 list<string> BinaryTree::doFIRST() {
@@ -210,15 +226,12 @@ std::string substr(std::string originalString, int maxLength)
 
 BinaryTree* BinaryTree::checkEpsChilds() {
     if (left == nullptr) {
-        right->epsilon_producing = true;
         return right;
     }
     else if (right == nullptr) {
-        left->epsilon_producing = true;
         return left;
     }
     else {
-        this->epsilon_producing = right->epsilon_producing || left->epsilon_producing;
         return this;
     }
 }
@@ -230,6 +243,11 @@ BinaryTree* BinaryTree::underKleene() {
     else if (type == literal) {
         auto* new_t = new BinaryTree(literal);
         new_t->rune = rune;
+        return new_t;
+    }
+    else if (type == reference) {
+        auto *new_t = new BinaryTree(reference);
+        new_t->variable = variable;
         return new_t;
     }
     else if (type == concatenationExpr) {
@@ -260,11 +278,15 @@ BinaryTree* BinaryTree::underKleene() {
         new_t->left = left->toSSNF();
         new_t->right = right->toSSNF();
         new_t = new_t->checkEpsChilds();
-        new_t->epsilon_producing = true;
         return new_t;
     }
     else if (type == kleeneStar or type == kleenePlus) {
         auto* new_t = child->underKleene();
+        return new_t;
+    }
+    else if (type == backreferenceExpr) {
+        auto* new_t = new BinaryTree(backreferenceExpr);
+        new_t->child = child->underKleene();
         return new_t;
     }
 }
@@ -276,6 +298,11 @@ BinaryTree* BinaryTree::toSSNF() {
     else if (type == literal) {
         auto* new_t = new BinaryTree(literal);
         new_t->rune = rune;
+        return new_t;
+    }
+    else if (type == reference) {
+        auto* new_t = new BinaryTree(reference);
+        new_t->variable = variable;
         return new_t;
     }
     else if (type == concatenationExpr) {
@@ -295,7 +322,11 @@ BinaryTree* BinaryTree::toSSNF() {
     else if (type == kleeneStar or type == kleenePlus) {
         auto* new_t = new BinaryTree(type);
         new_t->child = child->underKleene();
-        new_t->epsilon_producing = new_t->child->epsilon_producing;
+        return new_t;
+    }
+    else if (type == backreferenceExpr) {
+        auto* new_t = new BinaryTree(backreferenceExpr);
+        new_t->child = child->toSSNF();
         return new_t;
     }
 }

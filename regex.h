@@ -1,9 +1,11 @@
+#ifndef COURSEWORK_REGEX_H
+#define COURSEWORK_REGEX_H
+
 #include <string>
 
 #include "list"
 
-#ifndef COURSEWORK_REGEX_H
-#define COURSEWORK_REGEX_H
+#include "automata.h"
 
 using namespace std;
 
@@ -65,6 +67,7 @@ enum RegexpType {
 class Regexp {
 public:
     RegexpType regexp_type;
+    string regexp_str;
 
 
     char rune; // literal
@@ -92,6 +95,10 @@ public:
     void doEnumeration();
 
     BinaryTree* to_binary_tree();
+
+    Automata* compile();
+
+    bool match(const string& input_str);
 };
 
 void match(string regexp_str);

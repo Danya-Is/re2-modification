@@ -51,3 +51,6 @@ not SSNF:
 ((a|e)(b|e))*
 (((a|e)(b|e))|(c|a)*)*
 (((a|e)(b|e))*(c|a)*)*
+
+deterministic reverse:
+(a|b)*a(a|b)

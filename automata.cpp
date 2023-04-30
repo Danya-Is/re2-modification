@@ -129,7 +129,7 @@ void Automata::evaluateStates(string letter, int letter_index,
 
 
 
-//pair<int, int> Automata::matchThomson(string str) {
+//pair<int, int> Automata::match(string str) {
 //    set<Node*> states;
 //    map<Node*, set<int>> finish_indexes;
 //    map<Node*, set<int>> start_indexes;
@@ -174,30 +174,39 @@ void Automata::evaluateStates(string letter, int letter_index,
 //    return make_pair(-1, -1);
 //}
 
-bool Automata::matchThomson(string str) {
+bool Automata::match(const string& str) {
     set<Node*> states;
     states.insert(start);
     int str_len = str.length();
-    for (int i = 0; i < str_len; i++) {
-        string by = str.substr(i, 1);
-        set<Node*> visited_states;
-        evaluateStates(by, i, states, visited_states);
-        if (states.empty()) {
-            break;
+    if (is_reversed) {
+        for (int i = str_len - 1; i >= 0; i--) {
+            string by = str.substr(i, 1);
+            set<Node*> visited_states;
+            evaluateStates(by, str_len - i - 1, states, visited_states);
+            if (states.empty()) {
+                break;
+            }
+        }
+    }
+    else {
+        for (int i = 0; i < str_len; i++) {
+            string by = str.substr(i, 1);
+            set<Node*> visited_states;
+            evaluateStates(by, i, states, visited_states);
+            if (states.empty()) {
+                break;
+            }
         }
     }
     set<Node*> visited_states;
     evaluateStates("", str_len - 1, states, visited_states);
 
+    cout << finish << endl;
     for (auto *state: states) {
         if (state == finish) {
             return true;
         }
     }
     return false;
-}
-
-bool Automata::matchGlushkov(string str) {
-    return matchThomson(str);
 }
 

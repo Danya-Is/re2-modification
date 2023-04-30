@@ -29,15 +29,15 @@ void match_gt(string regexp_str) {
             while (getline(file, text)) {
                 bool match;
                 clock_t start = clock();
-//                match = thomson->matchThomson(text);
-                match = glushkov->matchThomson(text);
+//                match = thomson->match(text);
+                match = glushkov->match(text);
                 clock_t end = clock();
                 double seconds = (double)(end - start) / CLOCKS_PER_SEC;
 //    if (!glushkov->isDeterministic()) {
-//        match = thomson->matchThomson(std::move(text));
+//        match = thomson->match(std::move(text));
 //    }
 //    else {
-//        match = glushkov->matchThomson(text);
+//        match = glushkov->match(text);
 //    }
 //                cout << match << endl;
                 cout << seconds << endl;
@@ -72,7 +72,7 @@ void match_mfa(string regexp_str) {
             while (getline(file, text)) {
                 bool match;
                 clock_t start = clock();
-                match = mfa->matchMFA(text);
+                match = mfa->match(text);
                 clock_t end = clock();
                 double seconds = (double)(end - start) / CLOCKS_PER_SEC;
                 cout << seconds << endl;
