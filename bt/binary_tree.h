@@ -1,5 +1,5 @@
-#include "regex.h"
-#include "automata.h"
+#include "../regex.h"
+#include "../automata.h"
 
 #include <set>
 
@@ -38,6 +38,9 @@ public:
     BinaryTree* toSSNF();
     BinaryTree* underKleene();
     BinaryTree* checkEpsChilds();
+
+    BinaryTree* toBNF();
+    BinaryTree* distribute();
 
     Automata* toThomson();
     Automata* toGlushkov();

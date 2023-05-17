@@ -36,6 +36,10 @@ Glushkov:
 1.89519
 ((b|(c|(d|(e|(f|(g|(h|(i|(j|(k|(l|(m|(n|(o|(p|(q|(r|(s|(t|(u|(v|(w|(x|y)))))))))))))))))))))))a)*
 
+pseudodeterministic
+{(a|b)*}:1&1a
+
+
 ({&2}:1{a&1}:2)*
 ({&1a}:2{&2&2}:1)*
 ({a*}:1b&1b)*
@@ -47,6 +51,7 @@ Glushkov:
 {((b|(c|(d|(e|(f|(g|(h|(i|(j|(k|(l|(m|(n|(o|(p|(q|(r|(s|(t|(u|(v|(w|(x|y)))))))))))))))))))))))a)*}:1&1
 
 not SSNF:
+(a*b*)*
 ((a|e)|(b|e))*
 ((a|e)(b|e))*
 (((a|e)(b|e))|(c|a)*)*
@@ -54,3 +59,9 @@ not SSNF:
 
 deterministic reverse:
 (a|b)*a(a|b)
+
+backref not normal form
+({a*}:1&1|({a*}:1bb(bb)*&1|a*b|b|bb))*
+({a*}:1&1|{a*}:1b|b&1|bb)*
+
+({a*}:1&1a*b|{a*}:1&1b|{a*}:1&1bb|{a*}:1&1{a*}:1&1|{a*}:1bb&1|a*ba*b|a*b)*

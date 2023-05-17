@@ -1,7 +1,7 @@
 #include <utility>
 
 #include "regex.h"
-#include "binary_tree.h"
+#include "bt/binary_tree.h"
 
 using namespace std;
 

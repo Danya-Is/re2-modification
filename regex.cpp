@@ -2,7 +2,7 @@
 #include <string>
 
 #include "regex.h"
-#include "binary_tree.h"
+#include "bt/binary_tree.h"
 
 BinaryTree *Regexp::to_binary_tree() {
     auto* tr = new BinaryTree();
@@ -54,8 +54,12 @@ Automata* Regexp::compile() {
     auto *bt = to_binary_tree();
     bt = bt->toSSNF();
 
+    auto *MFA = bt->toMFA();
+    MFA->draw("mfa");
+
     if (bt->have_backreference) {
         auto *MFA = bt->toMFA();
+        MFA->draw("mfa");
         return MFA;
     }
     else {

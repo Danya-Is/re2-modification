@@ -1,10 +1,10 @@
 #include <iostream>
 #include <string>
 #include <utility>
-#include "regex.h"
-#include "binary_tree.h"
-#include "automata.h"
-#include "node.h"
+#include "../regex.h"
+#include "../bt/binary_tree.h"
+#include "../automata.h"
+#include "../node.h"
 
 using namespace std;
 

@@ -1,6 +1,6 @@
 #include <iostream>
 #include "regex.h"
-#include "binary_tree.h"
+#include "bt/binary_tree.h"
 #include "automata.h"
 #include "test.h"
 
