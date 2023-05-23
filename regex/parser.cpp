@@ -1,7 +1,7 @@
 #include <utility>
 
 #include "regex.h"
-#include "bt/binary_tree.h"
+#include "../bt/binary_tree.h"
 
 using namespace std;
 
@@ -12,21 +12,21 @@ Regexp* Regexp::parse_regexp(string &s) {
     while (!s.empty()) {
         char c = s[0];
         if (c == '*' || c == '+') {
-            regexp->doKleene(c);
+            regexp->do_kleene(c);
         } else if (c == '(') {
             auto* re = new Regexp(leftParenthesis);
             regexp->sub_regexps.push_back(re);
         } else if (c == '|') {
-            regexp->doConcatenation();
+            regexp->do_concatenation();
         } else if (c == ')') {
-            regexp->doCollapse();
+            regexp->do_collapse();
         }
         else if (c == '['){
             auto* re = new Regexp(leftSquareBr);
             regexp->sub_regexps.push_back(re);
         }
         else if (c == ']') {
-            regexp->doEnumeration();
+            regexp->do_enumeration();
         }
         else if (c == '-') {
             auto* re = new Regexp(dash);
@@ -44,7 +44,7 @@ Regexp* Regexp::parse_regexp(string &s) {
             }
             s.erase(0, 1);
             string name  = substr(s, 1);
-            regexp->doBackreference(name);
+            regexp->do_backreference(name);
         }
         else if (c == '&') {
             s.erase(0, 1);
@@ -52,6 +52,7 @@ Regexp* Regexp::parse_regexp(string &s) {
             auto* new_re = new Regexp(reference);
             new_re->variable = name;
             regexp->sub_regexps.push_back(new_re);
+            regexp->have_backreference = true;
         }
         else if (c == 'e') {
             auto* re = new Regexp(epsilon);
@@ -78,12 +79,13 @@ Regexp* Regexp::parse_regexp(string &s) {
     if (regexp->regexp_type == rootExpr && regexp->sub_regexps.size() == 1) {
         auto* child = regexp->sub_regexps.back();
         child->regexp_str = regexp->regexp_str;
+        child->have_backreference = regexp->have_backreference;
         regexp = child;
     }
     return regexp;
 }
 
-void Regexp::doConcatenation() {
+void Regexp::do_concatenation() {
     Regexp* stack_top = sub_regexps.back();
     auto* new_re = new Regexp();
     while (stack_top->regexp_type != leftParenthesis && stack_top->regexp_type != alternation) {
@@ -102,7 +104,7 @@ void Regexp::doConcatenation() {
 }
 
 
-void Regexp::doCollapse() {
+void Regexp::do_collapse() {
     Regexp* stack_top = sub_regexps.back();
     auto* new_re = new Regexp();
     new_re->regexp_type = concatenationExpr;
@@ -139,7 +141,7 @@ void Regexp::doCollapse() {
 
 }
 
-void Regexp::doKleene(char c) {
+void Regexp::do_kleene(char c) {
     auto* stack_top = sub_regexps.back();
     sub_regexps.pop_back();
     Regexp* re;
@@ -151,7 +153,7 @@ void Regexp::doKleene(char c) {
     sub_regexps.push_back(re);
 }
 
-void Regexp::doBackreference(string name) {
+void Regexp::do_backreference(string name) {
     Regexp* stack_top = sub_regexps.back();
     auto* new_re = new Regexp();
     new_re->regexp_type = backreferenceExpr;
@@ -164,7 +166,7 @@ void Regexp::doBackreference(string name) {
     sub_regexps.pop_back();
 
     new_re->sub_regexps.push_front(new Regexp(leftParenthesis));
-    new_re->doCollapse();
+    new_re->do_collapse();
     if (new_re->sub_regexps.size() == 1) {
         new_re->sub_regexp = new_re->sub_regexps.back();
         new_re->sub_regexps.clear();
@@ -173,9 +175,10 @@ void Regexp::doBackreference(string name) {
     }
 
     sub_regexps.push_back(new_re);
+    have_backreference = true;
 }
 
-void Regexp::doEnumeration() {
+void Regexp::do_enumeration() {
     Regexp* stack_top = sub_regexps.back();
     auto* new_re = new Regexp(alternationExpr);
     while (stack_top->regexp_type != leftSquareBr) {

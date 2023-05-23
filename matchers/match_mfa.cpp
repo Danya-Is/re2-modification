@@ -1,7 +1,7 @@
 #include <iostream>
 #include <string>
 #include <utility>
-#include "../regex.h"
+#include "../regex/regex.h"
 #include "../bt/binary_tree.h"
 #include "../automata.h"
 #include "../node.h"

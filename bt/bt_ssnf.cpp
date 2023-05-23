@@ -98,7 +98,7 @@ BinaryTree* BinaryTree::toSSNF() {
         new_t = new_t->checkEpsChilds();
         return new_t;
     }
-    else if (type == kleeneStar or type == kleenePlus) {
+    else if (type == kleeneStar || type == kleenePlus) {
         auto* new_t = new BinaryTree(type);
         new_t->child = child->underKleene();
         return new_t;
