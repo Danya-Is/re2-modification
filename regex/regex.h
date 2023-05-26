@@ -94,34 +94,47 @@ public:
 
     /// есть ли в регулярка (конкатенации) путь при котором переменная может оказать неинициализированной `({}:1&1|a)&1`
     set<string> uninited_read;
-    /// нужно внутри альтернатив и под итерациями
+    /// нужно внутри альтернатив и под итерациями, возможно непрочтенные
     set<string> unread_init;
+    /// нужно для очистки итоговой регулярки
+    set<string> definitely_unread_init;
 
     void concat_vars(Regexp* regexp) {
-        union_sets(uninited_read, regexp->uninited_read);
-        for (const auto& now_init: initialized) {
-            if (uninited_read.find(now_init) != uninited_read.end()) {
-                uninited_read.erase(now_init);
+        if (sub_regexps.empty())
+            copy_vars(regexp);
+        else {
+            union_sets(uninited_read, regexp->uninited_read);
+            for (const auto& now_init: initialized) {
+                if (uninited_read.find(now_init) != uninited_read.end()) {
+                    uninited_read.erase(now_init);
+                }
             }
-        }
-        union_sets(unread_init, regexp->unread_init);
-        for (const auto& now_read: regexp->read) {
-            if (unread_init.find(now_read) != unread_init.end()) {
-                unread_init.erase(now_read);
+            union_sets(unread_init, regexp->unread_init);
+            for (const auto& now_read: regexp->read) {
+                if (unread_init.find(now_read) != unread_init.end()) {
+                    unread_init.erase(now_read);
+                }
             }
-        }
+            union_sets(definitely_unread_init, regexp->unread_init);
+            for (const auto& now_maybe_read: regexp->maybe_read) {
+                if (definitely_unread_init.find(now_maybe_read) != definitely_unread_init.end()) {
+                    definitely_unread_init.erase(now_maybe_read);
+                }
+            }
 
-        union_sets(initialized, regexp->initialized);
-        union_sets(read, regexp->read);
-        union_sets(maybe_read, regexp->maybe_read);
-        union_sets(maybe_initialized, regexp->maybe_initialized);
+            union_sets(initialized, regexp->initialized);
+            union_sets(read, regexp->read);
+            union_sets(maybe_read, regexp->maybe_read);
+            union_sets(maybe_initialized, regexp->maybe_initialized);
+        }
     }
 
     void alt_vars(Regexp* regexp) {
         union_sets(uninited_read, regexp->uninited_read);
         union_sets(unread_init, regexp->unread_init);
+        union_sets(definitely_unread_init, regexp->definitely_unread_init);
 
-        intersect_sets(initialized, regexp->initialized);
+//        intersect_sets(initialized, regexp->initialized);
         intersect_sets(read, regexp->read);
         union_sets(maybe_read, regexp->maybe_read);
         union_sets(maybe_initialized, regexp->maybe_initialized);
@@ -132,12 +145,15 @@ public:
         maybe_read = regexp->maybe_read;
         uninited_read = regexp->uninited_read;
         unread_init = regexp->unread_init;
+        definitely_unread_init = regexp->definitely_unread_init;
     }
 
     void copy_vars(Regexp* regexp) {
         union_sets(uninited_read, regexp->uninited_read);
+        union_sets(definitely_unread_init, regexp->definitely_unread_init);
         union_sets(unread_init, regexp->unread_init);
-        union_sets(initialized, regexp->initialized);
+        if (regexp_type != alternationExpr)
+            union_sets(initialized, regexp->initialized);
         union_sets(read, regexp->read);
         union_sets(maybe_read, regexp->maybe_read);
         union_sets(maybe_initialized, regexp->maybe_initialized);
@@ -150,6 +166,7 @@ public:
         maybe_read = regexp->maybe_read;
         uninited_read = regexp->uninited_read;
         unread_init = regexp->unread_init;
+        definitely_unread_init = regexp->definitely_unread_init;
     }
 
     Regexp() {
@@ -160,6 +177,7 @@ public:
     }
 
     static Regexp* parse_regexp(string &s);
+    string to_string();
 
     void do_concatenation();
     void do_collapse();
@@ -184,9 +202,11 @@ public:
     set<string> alt_init_without_read();
 
     /// удаление лишних инициализий после преобразований
-    Regexp* clear_initializations(set<string> vars);
+    Regexp *clear_initializations_and_read(set<string> vars, set<string> read_vars = {});
     Regexp* open_kleene_plus(set<string> vars);
     Regexp* open_kleene(set<string> vars);
+//    Regexp* open_kleene_with_read
+    Regexp* kleene_star_to_plus();
 
     template<class Compare>
     list<string> make_var_queue(priority_queue<pair<string, int>, vector<pair<string, int>>, Compare> pq);

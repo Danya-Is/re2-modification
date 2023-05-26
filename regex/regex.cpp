@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <string>
+#include <iostream>
 
 #include "regex.h"
 #include "../bt/binary_tree.h"
@@ -70,6 +71,7 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
 //        }
     }
     else if (regexp_type == alternationExpr || regexp_type == concatenationExpr) {
+        int i = 0;
         for (auto *sub_regex: sub_regexps) {
             set<string> sub_initialized;
             sub_initialized.insert(initialized_vars.begin(), initialized_vars.end());
@@ -88,33 +90,15 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
             initialized_vars = sub_initialized;
 
             if (regexp_type == concatenationExpr) {
-                // неинициализированным в конкатенации считается чтение, которые до этого необязательно инициализировано
-                auto sub_may_read = sub_regex->maybe_read;
-                for (const auto& sub_may_r: sub_may_read) {
-                    if (initialized.find(sub_may_r) == initialized.end()) {
-                        uninited_read.insert(sub_may_r);
-                    }
-                }
-
-                // добавляем новые непрочитанные переменные, а затем удаляем те, что точно прочитаны с добавлением нового элемента
-                union_sets(unread_init, sub_regex->unread_init);
-                for (const auto& now_read: sub_regex->read) {
-                    if (unread_init.find(now_read) != unread_init.end()) {
-                        unread_init.erase(now_read);
-                    }
-                }
-
-                union_sets(initialized, sub_regex->initialized);
-                union_sets(read, sub_regex->read);
+                concat_vars(sub_regex);
             }
             else {
-                uninited_read = alt_read_without_init();
-                unread_init = alt_init_without_read();
-                intersect_sets(initialized, sub_regex->initialized);
-                intersect_sets(read, sub_regex->read);
+                if (i == 0)
+                    copy_vars(sub_regex);
+                else
+                    alt_vars(sub_regex);
             }
-            union_sets(maybe_initialized, sub_regex->maybe_initialized);
-            union_sets(maybe_read, sub_regex->maybe_read);
+            i++;
         }
     }
     else if (regexp_type == kleeneStar || regexp_type == kleenePlus || regexp_type == backreferenceExpr) {
@@ -125,6 +109,7 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
             initialized.insert(variable);
             maybe_initialized.insert(variable);
             unread_init.insert(variable);
+            definitely_unread_init.insert(variable);
 
             //        if (double_initialized || !read_before_init.empty()) {
             //            return;
@@ -144,6 +129,55 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
         maybe_read.insert(sub_regexp->maybe_read.begin(), sub_regexp->maybe_read.end());
         uninited_read.insert(sub_regexp->uninited_read.begin(), sub_regexp->uninited_read.end());
         unread_init.insert(sub_regexp->unread_init.begin(), sub_regexp->unread_init.end());
+        definitely_unread_init.insert(sub_regexp->definitely_unread_init.begin(),
+                                      sub_regexp->definitely_unread_init.end());
+    }
+}
+
+string Regexp::to_string() {
+    if (regexp_type == epsilon) {
+        return "ε";
+    }
+    else if (regexp_type == literal) {
+        return &rune;
+    }
+    else if (regexp_type == reference) {
+        return "&" + variable;
+    }
+    else if (regexp_type == concatenationExpr) {
+        string res = "";
+        for (auto *sub_r: sub_regexps) {
+            res += sub_r->to_string();
+        }
+        return res;
+    }
+    else if (regexp_type == alternationExpr) {
+        string res = "(";
+        for (auto *sub_r: sub_regexps) {
+            res += sub_r->to_string() + "|";
+        }
+        if (res == "(")
+            return "(ε)";
+        res.pop_back();
+
+        res += ")";
+        return res;
+    }
+    else if (regexp_type == backreferenceExpr) {
+        return "{" + sub_regexp->to_string() +  "}:" + variable;
+    }
+    else if (regexp_type == kleeneStar) {
+        if (sub_regexp->regexp_type == alternationExpr || sub_regexp->regexp_type == literal ||
+        sub_regexp->regexp_type == epsilon || sub_regexp->regexp_type == regexp_type)
+            return sub_regexp->to_string() + "*";
+        else
+            return "(" + sub_regexp->to_string() +  ")*";
+    }
+    else if (regexp_type == kleenePlus) {
+        if (sub_regexp->regexp_type == alternationExpr)
+            return sub_regexp->to_string() + "+";
+        else
+            return "(" + sub_regexp->to_string() +  ")+";
     }
 }
 

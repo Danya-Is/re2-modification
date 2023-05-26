@@ -12,15 +12,13 @@ void match(string regexp_str) {
 //    regexp_str = ".*" + regexp_str + ".*";
     Regexp* regexp = Regexp::parse_regexp(regexp_str);
 
-    cout << regexp->is_backref_correct();
-
-//    string text;
-//    cin >> text;
-//    auto *automata = regexp->compile();
-//    while (text != "exit") {
-//        bool match;
-//        match = automata->match(text);
-//        cout << match << endl;
-//        cin >> text;
-//    }
+    string text;
+    cin >> text;
+    auto *automata = regexp->compile();
+    while (text != "exit") {
+        bool match;
+        match = automata->match(text);
+        cout << match << endl;
+        cin >> text;
+    }
 }
