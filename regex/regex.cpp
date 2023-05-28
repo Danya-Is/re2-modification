@@ -28,11 +28,11 @@ map<string, int> Regexp::alt_init() {
     map<string, int> init;
     for (auto *sub_r: sub_regexps) {
         for (const auto& var: sub_r->initialized) {
-            if (init.find(var) == init.end()) {
-                init[var] = 1;
+            if (init.find(var.first) == init.end()) {
+                init[var.first] = 1;
             }
             else {
-                init[var] += 1;
+                init[var.first] += 1;
             }
         }
     }
@@ -53,6 +53,19 @@ void intersect_sets(set<string> &first, set<string> &second) {
               second.begin(), second.end(),
               inserter(intersection_set, intersection_set.begin()));
     first = intersection_set;
+}
+
+void concat_maps(map<string, list<Regexp*>> &first, map<string, list<Regexp*>> &second) {
+    for (auto el: second) {
+        if (first.find(el.first) == first.end()) {
+            first[el.first] = el.second;
+        }
+        else {
+            for (auto var: el.second) {
+                first[el.first].push_back(var);
+            }
+        }
+    }
 }
 
 void Regexp::_is_backref_correct(set<string> &initialized_vars,
@@ -106,7 +119,7 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
                                         read_before_init,
                                         double_initialized);
         if (regexp_type == backreferenceExpr) {
-            initialized.insert(variable);
+            initialized[variable].push_back(this);
             maybe_initialized.insert(variable);
             unread_init.insert(variable);
             definitely_unread_init.insert(variable);
@@ -132,6 +145,15 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
         definitely_unread_init.insert(sub_regexp->definitely_unread_init.begin(),
                                       sub_regexp->definitely_unread_init.end());
     }
+}
+
+Regexp *Regexp::simplify_conc_alt() {
+    if ((regexp_type == concatenationExpr || regexp_type == alternationExpr) &&
+            sub_regexps.size() == 1) {
+        return sub_regexps.front();
+    }
+    else
+        return this;
 }
 
 string Regexp::to_string() {

@@ -30,9 +30,9 @@ Regexp *Regexp::take_out_alt_under_backref() {
 
 Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string> read_vars) {
     // TODO delete epsilon in concatenation
-    if (init_vars.empty() && read_vars.empty()) {
-        return this;
-    }
+//    if (init_vars.empty() && read_vars.empty()) {
+//        return this;
+//    }
     auto *new_r = new Regexp();
     if (regexp_type == epsilon) {
         new_r->regexp_type = regexp_type;
@@ -52,7 +52,8 @@ Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string
         }
     }
     else if (regexp_type == backreferenceExpr) {
-        if (init_vars.find(variable) != init_vars.end()) {
+//        if (init_vars.find(variable) != init_vars.end()) {
+        if (!is_read){
             new_r->regexp_type = sub_regexp->regexp_type;
             new_r->copy_vars(this);
 
@@ -260,7 +261,10 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
 }
 
 Regexp *Regexp::open_kleene_plus(set<string> vars) {
-    auto *new_kleene = clear_initializations_and_read(std::move(vars), {});
+    auto *new_kleene = this;
+    // if (maybe_read.empty())
+    bind_init_to_read({});
+    new_kleene = clear_initializations_and_read(std::move(vars), {});
     auto *new_sub = sub_regexp;
 
     auto *concat = new Regexp(concatenationExpr);
@@ -306,6 +310,59 @@ Regexp *Regexp::kleene_star_to_plus() {
     return new_r;
 }
 
+Regexp *Regexp::open_kleene_with_read(set<string> vars) {
+    /// (&1)* -> (eps| &1&1*)
+    /// (a|b)* -> a*(ba*)* -> a*(ba*(ba*)*|eps) -> (a*ba*(ba*)*|a*) where b contains read
+    if (sub_regexp->regexp_type == alternationExpr) {
+        auto *a_alt = new Regexp(alternationExpr);
+        auto *b_alt = new Regexp(alternationExpr);
+
+        for (auto *sub_r: sub_regexp->sub_regexps) {
+            set<string> sub_read(sub_r->maybe_read.begin(), sub_r->maybe_read.end());
+            intersect_sets(sub_read, vars);
+            if (sub_read.empty()) {
+                a_alt->sub_regexps.push_back(sub_r);
+            }
+            else
+                b_alt->sub_regexps.push_back(sub_r);
+        }
+        a_alt = a_alt->simplify_conc_alt();
+        b_alt = b_alt->simplify_conc_alt();
+
+        auto *a_kleene = new Regexp(kleeneStar);
+        a_kleene->sub_regexp = a_alt;
+        a_kleene->star_kleene_vars(a_alt);
+
+        auto *sub_concat = new Regexp(concatenationExpr);
+        sub_concat->concat_vars(b_alt);
+        sub_concat->sub_regexps.push_back(b_alt);
+        sub_concat->concat_vars(a_kleene);
+        sub_concat->sub_regexps.push_back(a_kleene);
+
+        auto *second_kleene = new Regexp(kleeneStar);
+        second_kleene->sub_regexp = sub_concat;
+        second_kleene->star_kleene_vars(sub_concat);
+
+        auto *concat = new Regexp(concatenationExpr);
+        concat->concat_vars(a_kleene);
+        concat->sub_regexps.push_back(a_kleene);
+        concat->concat_vars(sub_concat);
+        concat->sub_regexps.push_back(sub_concat);
+        concat->concat_vars(second_kleene);
+        concat->sub_regexps.push_back(second_kleene);
+
+        auto *new_r = new Regexp(alternationExpr);
+        new_r->sub_regexps.push_back(a_kleene);
+        a_alt->copy_vars(a_kleene);
+        new_r->sub_regexps.push_back(concat);
+        new_r->alt_vars(concat);
+
+        return new_r;
+    }
+    else
+        return open_kleene(vars);
+}
+
 class MinCompare
 {
 public:
@@ -347,9 +404,6 @@ list<string> Regexp::make_var_queue(priority_queue<pair<string, int>, vector<pai
 
 Regexp *Regexp::_open_alt_under_kleene(const string& var) {
     /// (a|b)* = a*(ba*)*, b writes and a reads or do nothing
-    set<Regexp*> a;
-    set<Regexp*> b;
-
     auto *a_alt = new Regexp(alternationExpr);
     auto *b_alt = new Regexp(alternationExpr);
 
@@ -374,6 +428,8 @@ Regexp *Regexp::_open_alt_under_kleene(const string& var) {
             b_alt->sub_regexps.push_back(sub_r);
         }
     }
+    a_alt = a_alt->simplify_conc_alt();
+    b_alt = b_alt->simplify_conc_alt();
 
     auto *a_kleene = new Regexp(kleeneStar);
     a_kleene->sub_regexp = a_alt;
@@ -449,7 +505,7 @@ Regexp *Regexp::conc_handle_init_without_read() {
             ((*it)->sub_regexp->regexp_type == alternationExpr || (*it)->regexp_type == kleeneStar) &&
             !may_read.empty()) {
             if ((*it)->sub_regexp->regexp_type == kleeneStar) {
-                (*it)->sub_regexp = (*it)->sub_regexp->kleene_star_to_plus();
+                (*it)->sub_regexp = (*it)->sub_regexp->open_kleene_with_read(may_read);
             }
             (*it) = (*it)->take_out_alt_under_backref();
         }
@@ -458,7 +514,7 @@ Regexp *Regexp::conc_handle_init_without_read() {
             !may_read.empty()) {
             // kleene star
             if ((*it)->regexp_type == kleeneStar) {
-                (*it) = (*it)->kleene_star_to_plus();
+                (*it) = (*it)->open_kleene_with_read(may_read);
             }
             // тут в любом случае будет альтернатива, которую надо раскрыть
             auto *distributed = bnf_regexp->distribute_to_left(j);
@@ -649,7 +705,7 @@ Regexp *Regexp::_bnf(bool under_kleene, bool under_alt) {
         bnf_regex->variable = variable;
         bnf_regex->sub_regexp = sub_regexp->_bnf();
         bnf_regex->copy_vars(bnf_regex->sub_regexp);
-        bnf_regex->initialized.insert(variable);
+        bnf_regex->initialized[variable].push_back(bnf_regex);
         bnf_regex->maybe_initialized.insert(variable);
         bnf_regex->unread_init.insert(variable);
         bnf_regex->definitely_unread_init.insert(variable);
@@ -663,6 +719,7 @@ Regexp *Regexp::bnf() {
 
     cout << new_r->to_string() << endl;
 
+    new_r->bind_init_to_read({});
     new_r = new_r->clear_initializations_and_read(new_r->definitely_unread_init, new_r->uninited_read);
 
     return new_r;

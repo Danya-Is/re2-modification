@@ -65,8 +65,11 @@ enum RegexpType {
     rootExpr
 };
 
+class Regexp;
+
 void union_sets(set<string> &first, set<string> &second);
 void intersect_sets(set<string> &first, set<string> &second);
+void concat_maps(map<string, list<Regexp*>> &first, map<string, list<Regexp*>> &second);
 
 class Regexp {
 public:
@@ -78,12 +81,14 @@ public:
     Regexp* sub_regexp; // kleene
     list<Regexp*> sub_regexps; // alternative and concatination
     string variable; // backreferenceExpr expression
+    bool is_read; // backreferenceExpr
+    Regexp* reference_to; // reference
 
-    //    TODO список переменных
+    //    TODO
     bool have_backreference;
 
     /// точно инициализированные
-    set<string> initialized;
+    map<string, list<Regexp*>> initialized;
     /// точно прочитанные
     set<string> read;
 
@@ -105,8 +110,8 @@ public:
         else {
             union_sets(uninited_read, regexp->uninited_read);
             for (const auto& now_init: initialized) {
-                if (uninited_read.find(now_init) != uninited_read.end()) {
-                    uninited_read.erase(now_init);
+                if (uninited_read.find(now_init.first) != uninited_read.end()) {
+                    uninited_read.erase(now_init.first);
                 }
             }
             union_sets(unread_init, regexp->unread_init);
@@ -115,14 +120,15 @@ public:
                     unread_init.erase(now_read);
                 }
             }
-            union_sets(definitely_unread_init, regexp->unread_init);
+
             for (const auto& now_maybe_read: regexp->maybe_read) {
                 if (definitely_unread_init.find(now_maybe_read) != definitely_unread_init.end()) {
                     definitely_unread_init.erase(now_maybe_read);
                 }
             }
+            union_sets(definitely_unread_init, regexp->definitely_unread_init);
 
-            union_sets(initialized, regexp->initialized);
+            concat_maps(initialized, regexp->initialized);
             union_sets(read, regexp->read);
             union_sets(maybe_read, regexp->maybe_read);
             union_sets(maybe_initialized, regexp->maybe_initialized);
@@ -153,7 +159,7 @@ public:
         union_sets(definitely_unread_init, regexp->definitely_unread_init);
         union_sets(unread_init, regexp->unread_init);
         if (regexp_type != alternationExpr)
-            union_sets(initialized, regexp->initialized);
+            concat_maps(initialized, regexp->initialized);
         union_sets(read, regexp->read);
         union_sets(maybe_read, regexp->maybe_read);
         union_sets(maybe_initialized, regexp->maybe_initialized);
@@ -194,6 +200,8 @@ public:
                              set<string> &read_before_init,
                              bool &double_initialized);
 
+    Regexp* simplify_conc_alt();
+
     /// возможно неинициализированные чтения в вариантах альтернативы (под Клини)
     set<string> alt_read_without_init();
     /// количество инициализаций переменных в вариантах альтернативы (под Клини)
@@ -205,12 +213,12 @@ public:
     Regexp *clear_initializations_and_read(set<string> vars, set<string> read_vars = {});
     Regexp* open_kleene_plus(set<string> vars);
     Regexp* open_kleene(set<string> vars);
-//    Regexp* open_kleene_with_read
+    Regexp* open_kleene_with_read(set<string> vars);
     Regexp* kleene_star_to_plus();
 
     template<class Compare>
     list<string> make_var_queue(priority_queue<pair<string, int>, vector<pair<string, int>>, Compare> pq);
-    Regexp* open_alt_under_kleene(bool min_init_order = true);
+    Regexp* open_alt_under_kleene(bool min_init_order = false);
     Regexp* _open_alt_under_kleene(const string& var);
 
     Regexp* take_out_alt_under_backref();
@@ -222,6 +230,8 @@ public:
 
     Regexp* bnf();
     Regexp* _bnf(bool under_kleene = false, bool under_alt = false);
+
+    void bind_init_to_read(map<string, Regexp*> init);
 
     BinaryTree* to_binary_tree();
 
