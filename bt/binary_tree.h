@@ -1,5 +1,5 @@
-#include "regex.h"
-#include "automata.h"
+#include "../regex/regex.h"
+#include "../automata.h"
 
 #include <set>
 
@@ -31,6 +31,10 @@ public:
     list<string> doFIRST();
     list<string> doLAST();
     set<pair<string, string>> doFOLLOW();
+
+    BinaryTree* toSSNF();
+    BinaryTree* underKleene();
+    BinaryTree* checkEpsChilds();
 
     Automata* toThomson();
     Automata* toGlushkov();

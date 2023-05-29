@@ -19,6 +19,7 @@ public:
 
     void open() {
         is_open = true;
+        this->value = "";
     }
 
     void close() {

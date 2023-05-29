@@ -1,13 +1,13 @@
+#ifndef COURSEWORK_AUTOMATA_H
+#define COURSEWORK_AUTOMATA_H
+
 #include <set>
 #include <map>
 #include "list"
 
 #include "node.h"
-#include "regex.h"
+//#include "regex.h"
 #include "variable.h"
-
-#ifndef COURSEWORK_AUTOMATA_H
-#define COURSEWORK_AUTOMATA_H
 
 #define Memory map<string, Variable*>
 #define MemoryState pair<int, pair<MemoryNode*, Memory>>
@@ -21,6 +21,7 @@ public:
     Node* finish;
     int last_idx;
     list<Node*> nodes;
+    bool is_reversed = false;
 
     Automata() {
         start = new Node();
@@ -38,16 +39,12 @@ public:
 
     bool isDeterministic();
 
-    bool matchThomson(string str);
+    bool match(const string& str);
 
-    bool matchGlushkov(string str);
-
-    void evaluateStates(string letter, int letter_index, set<Node *> &states, set<Node *> &visited_states,
-                        map<Node *, set<int>> &start_indexes, map<Node *, set<int>> &finish_indexes);
+    void evaluateStates(string letter, int letter_index, set<Node *> &states, set<Node *> &visited_states);
 
     void
-    evaluateState(Node *state, string letter, int letter_index, set<Node *> &new_states, set<Node *> &visited_states,
-                  map<Node *, set<int>> &start_indexes, map<Node *, set<int>> &finish_indexes);
+    evaluateState(Node *state, string letter, int letter_index, set<Node *> &new_states, set<Node *> &visited_states);
 };
 
 class MFA : public Automata {
@@ -55,6 +52,7 @@ public:
     MemoryNode* start;
     MemoryNode* finish;
     list<MemoryNode*> nodes;
+    bool is_reversed = false;
 
     MFA() {
         start = new MemoryNode();
@@ -66,7 +64,7 @@ public:
 
     void changeFinalState(MemoryNode *new_final);
 
-    bool matchMFA(string str);
+    bool match(string str);
 
     void
     evaluateStates(string str, int letter_index, set<MemoryState> &states,
