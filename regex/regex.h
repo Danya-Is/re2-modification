@@ -175,6 +175,57 @@ public:
         definitely_unread_init = regexp->definitely_unread_init;
     }
 
+    // чтобы каждой инициализации при раскрытии по преобразованиям соответствовал уникальный указатель
+    Regexp* copy(Regexp* regexp) {
+        if (regexp->regexp_type == epsilon || regexp->regexp_type == literal) {
+            return regexp;
+        }
+        else if (regexp->regexp_type == reference) {
+            auto *new_r = new Regexp(reference);
+            new_r->variable = regexp->variable;
+            new_r->reference_to = regexp->reference_to;
+            new_r->copy_vars(regexp);
+            return new_r;
+        }
+        else if (regexp->regexp_type == backreferenceExpr) {
+            auto *new_r = new Regexp(backreferenceExpr);
+            new_r->variable = regexp->variable;
+            new_r->sub_regexp = copy(regexp->sub_regexp);
+
+            new_r->copy_vars(new_r->sub_regexp);
+            new_r->definitely_unread_init.insert(regexp->variable);
+            new_r->unread_init.insert(regexp->variable);
+            new_r->maybe_initialized.insert(regexp->variable);
+            new_r->initialized[variable].push_back(new_r);
+            return new_r;
+        }
+        else if (regexp->regexp_type == kleeneStar || regexp->regexp_type == kleenePlus) {
+            auto *new_r = new Regexp(regexp->regexp_type);
+            new_r->sub_regexp = copy(regexp->sub_regexp);
+            return new_r;
+        }
+        else if (regexp->regexp_type == alternationExpr || regexp->regexp_type == concatenationExpr) {
+            auto *new_r = new Regexp(regexp->regexp_type);
+            int i = 0;
+            for (auto *sub_r: regexp->sub_regexps) {
+                auto *copy_sub_r = copy(sub_r);
+
+                if (regexp->regexp_type == concatenationExpr) {
+                    new_r->concat_vars(copy_sub_r);
+                }
+                else {
+                    if (i == 0)
+                        new_r->copy_vars(copy_sub_r);
+                    else
+                        new_r->alt_vars(copy_sub_r);
+                }
+                new_r->sub_regexps.push_back(copy_sub_r);
+                i++;
+            }
+            return new_r;
+        }
+    }
+
     Regexp() {
     };
 
@@ -211,10 +262,10 @@ public:
 
     /// удаление лишних инициализий после преобразований
     Regexp *clear_initializations_and_read(set<string> vars, set<string> read_vars = {});
+
     Regexp* open_kleene_plus(set<string> vars);
     Regexp* open_kleene(set<string> vars);
     Regexp* open_kleene_with_read(set<string> vars);
-    Regexp* kleene_star_to_plus();
 
     template<class Compare>
     list<string> make_var_queue(priority_queue<pair<string, int>, vector<pair<string, int>>, Compare> pq);
@@ -230,6 +281,10 @@ public:
 
     Regexp* bnf();
     Regexp* _bnf(bool under_kleene = false, bool under_alt = false);
+
+    Regexp* replace_read_write(set<Regexp*>& initialized_in_reverse);
+    Regexp* _reverse();
+    Regexp* reverse();
 
     void bind_init_to_read(map<string, Regexp*> init);
 

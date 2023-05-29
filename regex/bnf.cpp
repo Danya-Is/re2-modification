@@ -48,6 +48,7 @@ Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string
         }
         else{
             new_r->regexp_type = regexp_type;
+            new_r->reference_to = reference_to;
             new_r->variable = variable;
         }
     }
@@ -78,9 +79,10 @@ Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string
             new_r = new_r->clear_initializations_and_read(init_vars, read_vars);
         }
         else {
-            new_r->regexp_type = backreferenceExpr;
-            new_r->variable = variable;
-            new_r->sub_regexp = sub_regexp->clear_initializations_and_read(init_vars, read_vars);
+//            new_r->regexp_type = backreferenceExpr;
+//            new_r->variable = variable;
+            sub_regexp = sub_regexp->clear_initializations_and_read(init_vars, read_vars);
+            return this;
         }
     }
     else if (regexp_type == concatenationExpr || regexp_type == alternationExpr) {
@@ -117,6 +119,7 @@ Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string
 
 
 Regexp* Regexp::distribute_to_right(int alt_pos) {
+    /// (a|b)c -> (ac|bc)
     if (regexp_type == concatenationExpr) {
         size_t n = sub_regexps.size();
         if (n >= alt_pos) {
@@ -152,9 +155,11 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
                 else
                     new_sub_r->sub_regexps.push_back(sub_r);
 
-                new_sub_r->concat_vars(tail);
-                for (auto *r: tail->sub_regexps)
-                    new_sub_r->sub_regexps.push_back(r);
+                for (auto *r: tail->sub_regexps){
+                    auto *copy_r = copy(r);
+                    new_sub_r->concat_vars(copy_r);
+                    new_sub_r->sub_regexps.push_back(copy_r);
+                }
 
 
                 new_alt->sub_regexps.push_back(new_sub_r);
@@ -190,6 +195,7 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
 }
 
 Regexp *Regexp::distribute_to_left(int alt_pos) {
+    /// a(b|c) -> (ab|ac)
     if (regexp_type == concatenationExpr) {
         size_t n = sub_regexps.size();
         if (n >= alt_pos) {
@@ -209,9 +215,11 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
             int k = 0;
             for (auto *sub_r: alt->sub_regexps) {
                 auto *new_sub_r = new Regexp(concatenationExpr);
-                new_sub_r->copy_vars(head);
-                for (auto *r: head->sub_regexps)
-                    new_sub_r->sub_regexps.push_back(r);
+                for (auto *r: head->sub_regexps) {
+                    auto *copy_r = copy(r);
+                    new_sub_r->concat_vars(copy_r);
+                    new_sub_r->sub_regexps.push_back(copy_r);
+                }
 
                 new_sub_r->concat_vars(sub_r);
                 if (sub_r->regexp_type == concatenationExpr){
@@ -265,7 +273,7 @@ Regexp *Regexp::open_kleene_plus(set<string> vars) {
     // if (maybe_read.empty())
     bind_init_to_read({});
     new_kleene = clear_initializations_and_read(std::move(vars), {});
-    auto *new_sub = sub_regexp;
+    auto *new_sub = copy(sub_regexp);
 
     auto *concat = new Regexp(concatenationExpr);
     concat->concat_vars(new_kleene);
@@ -296,22 +304,8 @@ Regexp *Regexp::open_kleene(set<string> vars) {
     }
 }
 
-Regexp *Regexp::kleene_star_to_plus() {
-    /// a* = (eps|a+)
-    auto *new_r = new Regexp(alternationExpr);
-    new_r->sub_regexps.push_back(new Regexp(epsilon));
-
-    auto *plus = new Regexp(kleenePlus);
-    plus->sub_regexp = sub_regexp;
-    plus->copy_vars(sub_regexp);
-    new_r->sub_regexps.push_back(plus);
-    new_r->alt_vars(plus);
-
-    return new_r;
-}
-
 Regexp *Regexp::open_kleene_with_read(set<string> vars) {
-    /// (&1)* -> (eps| &1&1*)
+    /// (a*) -> (eps|aa*); example: (&1)* -> (eps| &1&1*)
     /// (a|b)* -> a*(ba*)* -> a*(ba*(ba*)*|eps) -> (a*ba*(ba*)*|a*) where b contains read
     if (sub_regexp->regexp_type == alternationExpr) {
         auto *a_alt = new Regexp(alternationExpr);
@@ -336,12 +330,14 @@ Regexp *Regexp::open_kleene_with_read(set<string> vars) {
         auto *sub_concat = new Regexp(concatenationExpr);
         sub_concat->concat_vars(b_alt);
         sub_concat->sub_regexps.push_back(b_alt);
-        sub_concat->concat_vars(a_kleene);
-        sub_concat->sub_regexps.push_back(a_kleene);
+        auto *copy_a_kleene = copy(a_kleene);
+        sub_concat->concat_vars(copy_a_kleene);
+        sub_concat->sub_regexps.push_back(copy_a_kleene);
 
         auto *second_kleene = new Regexp(kleeneStar);
-        second_kleene->sub_regexp = sub_concat;
-        second_kleene->star_kleene_vars(sub_concat);
+        auto *copy_sub_concat = copy(sub_concat);
+        second_kleene->sub_regexp = copy_sub_concat;
+        second_kleene->star_kleene_vars(copy_sub_concat);
 
         auto *concat = new Regexp(concatenationExpr);
         concat->concat_vars(a_kleene);
@@ -352,8 +348,9 @@ Regexp *Regexp::open_kleene_with_read(set<string> vars) {
         concat->sub_regexps.push_back(second_kleene);
 
         auto *new_r = new Regexp(alternationExpr);
-        new_r->sub_regexps.push_back(a_kleene);
-        a_alt->copy_vars(a_kleene);
+        auto *copy_a_kleene_2 = copy(a_kleene);
+        new_r->sub_regexps.push_back(copy_a_kleene_2);
+        a_alt->copy_vars(copy_a_kleene_2);
         new_r->sub_regexps.push_back(concat);
         new_r->alt_vars(concat);
 
@@ -437,10 +434,11 @@ Regexp *Regexp::_open_alt_under_kleene(const string& var) {
 
     auto *second_kleene = new Regexp(kleeneStar);
     auto *child_concat = new Regexp(concatenationExpr);
+    auto *copy_a_kleene = copy(a_kleene);
     child_concat->concat_vars(b_alt);
-    child_concat->concat_vars(a_kleene);
+    child_concat->concat_vars(copy_a_kleene);
     child_concat->sub_regexps.push_back(b_alt);
-    child_concat->sub_regexps.push_back(a_kleene);
+    child_concat->sub_regexps.push_back(copy_a_kleene);
 
     second_kleene->sub_regexp = child_concat;
     second_kleene->star_kleene_vars(child_concat);

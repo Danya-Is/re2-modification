@@ -26,25 +26,6 @@ bool BinaryTree::epsilonProducing() {
     }
 }
 
-BinaryTree* BinaryTree::reverse() {
-    auto *new_t = new BinaryTree(type);
-    if (type == epsilon || type == literal || type == reference) {
-        return this;
-    }
-    else if (type == kleeneStar || type == kleenePlus || type == backreferenceExpr) {
-        new_t->child = child->reverse();
-    }
-    else if (type == alternationExpr) {
-        new_t->left = left->reverse();
-        new_t->right = right->reverse();
-    }
-    else if (type == concatenationExpr) {
-        new_t->left = right->reverse();
-        new_t->right = left->reverse();
-    }
-    return new_t;
-}
-
 std::string substr(std::string originalString, int maxLength)
 {
     std::string resultString = originalString;

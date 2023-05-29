@@ -27,7 +27,6 @@ public:
     string name;
 
     bool epsilonProducing();
-    BinaryTree* reverse();
     list<string> linearize(int&);
     list<string> doFIRST();
     list<string> doLAST();

@@ -92,13 +92,6 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
             sub_regex->_is_backref_correct(sub_initialized,
                                            sub_read_before_init,
                                            double_initialized);
-//            if (double_initialized) {
-//                break;
-//            }
-
-//            if (!read_before_init.empty()) {
-//                break;
-//            }
 
             initialized_vars = sub_initialized;
 
@@ -118,32 +111,17 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
         sub_regexp->_is_backref_correct(initialized_vars,
                                         read_before_init,
                                         double_initialized);
+        if (regexp_type != kleeneStar)
+            copy_vars(sub_regexp);
+        else
+            star_kleene_vars(sub_regexp);
+
         if (regexp_type == backreferenceExpr) {
             initialized[variable].push_back(this);
             maybe_initialized.insert(variable);
             unread_init.insert(variable);
             definitely_unread_init.insert(variable);
-
-            //        if (double_initialized || !read_before_init.empty()) {
-            //            return;
-            //        }
-            //        if (initialized_vars.find(variable) == initialized_vars.end()) {
-            //            initialized_vars.insert(variable);
-            //        }
-            //        else {
-            //            double_initialized = true;
-            //        }
         }
-        if (regexp_type != kleeneStar) {
-            initialized.insert(sub_regexp->initialized.begin(), sub_regexp->initialized.end());
-            read.insert(sub_regexp->read.begin(), sub_regexp->read.end());
-        }
-        maybe_initialized.insert(sub_regexp->maybe_initialized.begin(), sub_regexp->maybe_initialized.end());
-        maybe_read.insert(sub_regexp->maybe_read.begin(), sub_regexp->maybe_read.end());
-        uninited_read.insert(sub_regexp->uninited_read.begin(), sub_regexp->uninited_read.end());
-        unread_init.insert(sub_regexp->unread_init.begin(), sub_regexp->unread_init.end());
-        definitely_unread_init.insert(sub_regexp->definitely_unread_init.begin(),
-                                      sub_regexp->definitely_unread_init.end());
     }
 }
 
