@@ -255,8 +255,7 @@ Automata* Regexp::compile() {
             return glushkov;
         }
         else {
-
-            auto *reverse_bt = bt->reverse();
+            auto *reverse_bt = bnf()->reverse()->to_binary_tree();
             reverse_bt = reverse_bt->toSSNF();
             auto *reverse_glushkov = reverse_bt->toGlushkov();
             reverse_glushkov->is_reversed = true;
