@@ -270,7 +270,6 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
 
 Regexp *Regexp::open_kleene_plus(set<string> vars) {
     auto *new_kleene = this;
-    // if (maybe_read.empty())
     bind_init_to_read({});
     new_kleene = clear_initializations_and_read(std::move(vars), {});
     auto *new_sub = copy(sub_regexp);
@@ -715,7 +714,7 @@ Regexp *Regexp::_bnf(bool under_kleene, bool under_alt) {
 Regexp *Regexp::bnf() {
     auto *new_r = _bnf();
 
-    cout << new_r->to_string() << endl;
+//    cout << new_r->to_string() << endl;
 
     new_r->bind_init_to_read({});
     new_r = new_r->clear_initializations_and_read(new_r->definitely_unread_init, new_r->uninited_read);

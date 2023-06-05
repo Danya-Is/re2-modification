@@ -105,7 +105,7 @@ Regexp *Regexp::reverse() {
     set<Regexp*> empty_set;
     auto *reversed = _reverse();
 
-    cout << reversed->to_string() << endl;
+//    cout << reversed->to_string() << endl;
 
     return reversed->replace_read_write(empty_set);
 }
