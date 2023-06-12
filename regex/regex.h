@@ -103,6 +103,39 @@ public:
     set<string> unread_init;
     /// нужно для очистки итоговой регулярки
     set<string> definitely_unread_init;
+    /// для чтений перед инициализацией под итерацией `(&1{(a|b)}:1)*`
+    set<string> definitely_uninit_read;
+
+    bool is_equal(Regexp* other);
+
+    Regexp* last_init(const string& var) {
+        if (initialized.find(var) == initialized.end())
+            return nullptr;
+        else
+            return initialized[var].back();
+    }
+
+    Regexp* prefix_last_init(const string& var, list<Regexp*>::iterator it) {
+        while (it != sub_regexps.end()) {
+            auto new_last_init = (*it)->last_init(var);
+            if (new_last_init)
+                return new_last_init;
+            it--;
+        }
+        return nullptr;
+    }
+
+    void push_sub_regexp(Regexp* sub_r) {
+        if (regexp_type == concatenationExpr)
+            concat_vars(sub_r);
+        else if (regexp_type == alternationExpr) {
+            if (sub_regexps.empty())
+                copy_vars(sub_r);
+            else
+                alt_vars(sub_r);
+        }
+        sub_regexps.push_back(sub_r);
+    }
 
     void concat_vars(Regexp* regexp) {
         if (sub_regexps.empty())
@@ -118,6 +151,13 @@ public:
             for (const auto& now_read: regexp->read) {
                 if (unread_init.find(now_read) != unread_init.end()) {
                     unread_init.erase(now_read);
+                }
+            }
+
+            union_sets(definitely_uninit_read, regexp->definitely_uninit_read);
+            for (const auto& now_maybe_init: maybe_initialized) {
+                if (definitely_uninit_read.find(now_maybe_init) != definitely_uninit_read.end()) {
+                    definitely_uninit_read.erase(now_maybe_init);
                 }
             }
 
@@ -139,6 +179,7 @@ public:
         union_sets(uninited_read, regexp->uninited_read);
         union_sets(unread_init, regexp->unread_init);
         union_sets(definitely_unread_init, regexp->definitely_unread_init);
+        union_sets(definitely_uninit_read, regexp->definitely_uninit_read);
 
 //        intersect_sets(initialized, regexp->initialized);
         intersect_sets(read, regexp->read);
@@ -152,6 +193,7 @@ public:
         uninited_read = regexp->uninited_read;
         unread_init = regexp->unread_init;
         definitely_unread_init = regexp->definitely_unread_init;
+        definitely_uninit_read = regexp->definitely_uninit_read;
     }
 
     void copy_vars(Regexp* regexp) {
@@ -163,16 +205,13 @@ public:
         union_sets(read, regexp->read);
         union_sets(maybe_read, regexp->maybe_read);
         union_sets(maybe_initialized, regexp->maybe_initialized);
+        union_sets(definitely_uninit_read, regexp->definitely_uninit_read);
     }
 
     void change_vars(Regexp* regexp) {
         initialized = regexp->initialized;
         read = regexp->read;
-        maybe_initialized = regexp->maybe_initialized;
-        maybe_read = regexp->maybe_read;
-        uninited_read = regexp->uninited_read;
-        unread_init = regexp->unread_init;
-        definitely_unread_init = regexp->definitely_unread_init;
+        star_kleene_vars(regexp);
     }
 
     // чтобы каждой инициализации при раскрытии по преобразованиям соответствовал уникальный указатель
@@ -196,7 +235,7 @@ public:
             new_r->definitely_unread_init.insert(regexp->variable);
             new_r->unread_init.insert(regexp->variable);
             new_r->maybe_initialized.insert(regexp->variable);
-            new_r->initialized[variable].push_back(new_r);
+            new_r->initialized[regexp->variable].push_back(new_r);
             return new_r;
         }
         else if (regexp->regexp_type == kleeneStar || regexp->regexp_type == kleenePlus) {
@@ -272,6 +311,8 @@ public:
     Regexp* open_alt_under_kleene(bool min_init_order = false);
     Regexp* _open_alt_under_kleene(const string& var);
 
+    Regexp* handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index);
+
     Regexp* take_out_alt_under_backref();
     Regexp* distribute_to_right(int alt_pos);
     Regexp* distribute_to_left(int alt_pos);
@@ -286,7 +327,7 @@ public:
     Regexp* _reverse();
     Regexp* reverse();
 
-    void bind_init_to_read(map<string, Regexp*> init);
+    void bind_init_to_read(map<string, list<Regexp *>> init);
 
     BinaryTree* to_binary_tree();
 

@@ -6,6 +6,33 @@
 #include "../bt/binary_tree.h"
 
 
+bool Regexp::is_equal(Regexp *other) {
+    if (regexp_type != other->regexp_type)
+        return false;
+    else {
+        if (regexp_type == epsilon)
+            return true;
+        else if (regexp_type == literal)
+            return other->rune == rune;
+        else if (regexp_type == reference)
+            return other->variable == variable;
+        else if (regexp_type == concatenationExpr || regexp_type == alternationExpr) {
+            if (sub_regexps.size() != other->sub_regexps.size())
+                return false;
+            for (auto it1 = sub_regexps.begin(), it2 = sub_regexps.begin();
+            it1 != sub_regexps.end() && it2 != other->sub_regexps.end(); it1++, it2++){
+                if (!(*it1)->is_equal(*it2))
+                    return false;
+            }
+            return true;
+        }
+        else if (regexp_type == kleeneStar || regexp_type == kleenePlus)
+            return sub_regexp->is_equal(other->sub_regexp);
+        else if (regexp_type == backreferenceExpr)
+            return sub_regexp->is_equal(other->sub_regexp) && variable == other->variable;
+    }
+}
+
 set<string> Regexp::alt_init_without_read() {
     set<string> unread;
     for (auto *sub_r: sub_regexps) {
@@ -78,6 +105,7 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
         read.insert(variable);
         maybe_read.insert(variable);
         uninited_read.insert(variable);
+        definitely_uninit_read.insert(variable);
 
 //        if (initialized_vars.find(variable) == initialized_vars.end()) {
 //            read_before_init.insert(variable);
@@ -139,7 +167,7 @@ string Regexp::to_string() {
         return "ε";
     }
     else if (regexp_type == literal) {
-        return &rune;
+        return string(1, rune);
     }
     else if (regexp_type == reference) {
         return "&" + variable;

@@ -2,12 +2,14 @@
 
 #include "regex.h"
 
-void Regexp::bind_init_to_read(map<string, Regexp *> init) {
+void Regexp::bind_init_to_read(map<string, list<Regexp *>> init) {
     if (regexp_type == epsilon || regexp_type == literal){}
     else if (regexp_type == reference) {
         if (init.find(variable) != init.end()){
-            reference_to = init[variable];
-            init[variable]->is_read = true;
+            reference_to = init[variable].front();
+            for (auto backref: init[variable]){
+                backref->is_read = true;
+            }
         }
 
     }
@@ -17,12 +19,22 @@ void Regexp::bind_init_to_read(map<string, Regexp *> init) {
             if (regexp_type == concatenationExpr && !sub_r->initialized.empty()) {
                 for (auto el: sub_r->initialized) {
                     // интересна последняя инициализация перед возможным чтением
-                    init[el.first] = el.second.back();
+                    init[el.first].push_back(el.second.back());
                 }
             }
         }
     }
     else if (regexp_type == kleeneStar || regexp_type == kleenePlus || regexp_type == backreferenceExpr) {
+        if (regexp_type == kleeneStar || regexp_type == kleenePlus) {
+            // если последняя инициализация под итерацией совпадает с последней инициализацией перед ней (w(rw)*)
+            for (auto write: sub_regexp->initialized) {
+                auto var_name = write.first;
+                auto r = write.second.back();
+                if (init.find(var_name) != init.end() &&
+                        init[var_name].back()->is_equal(r))
+                    init[var_name].push_back(r);
+            }
+        }
         sub_regexp->bind_init_to_read(init);
     }
 }
