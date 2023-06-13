@@ -306,7 +306,7 @@ public:
 
     Regexp* open_kleene_plus(set<string> vars, bool need_for_cleen = true);
     Regexp* open_kleene(set<string> vars, bool need_for_cleen = true);
-    Regexp* open_kleene_with_read(set<string> vars);
+    Regexp* open_kleene_with_read(set<string> vars, Regexp* parent, list<Regexp*>::iterator prefix_index);
 
     template<class Compare>
     list<string> make_var_queue(priority_queue<pair<string, int>, vector<pair<string, int>>, Compare> pq);

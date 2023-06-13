@@ -280,7 +280,7 @@ Regexp *Regexp::open_kleene(set<string> vars, bool need_for_cleen) {
     }
 }
 
-Regexp *Regexp::open_kleene_with_read(set<string> vars) {
+Regexp *Regexp::open_kleene_with_read(set<string> vars, Regexp* parent, list<Regexp*>::iterator prefix_index) {
     /// (a*) -> (eps|aa*); example: (&1)* -> (eps| &1&1*)
     /// (a|b)* -> a*(ba*)* -> a*(ba*(ba*)*|eps) -> (a*ba*(ba*)*|a*) where b contains read
     if (sub_regexp->regexp_type == alternationExpr) {
@@ -327,8 +327,15 @@ Regexp *Regexp::open_kleene_with_read(set<string> vars) {
 
         return new_r;
     }
-    else
-        return open_kleene(vars);
+    else {
+        set<string> read_before_init(sub_regexp->definitely_uninit_read.begin(),
+                                     sub_regexp->definitely_uninit_read.end());
+        intersect_sets(read_before_init, sub_regexp->maybe_initialized);
+        if (read_before_init.empty())
+            return open_kleene(vars);
+        else
+            return rw_in_conc_under_kleene(parent, prefix_index);
+    }
 }
 
 class MinCompare
@@ -446,7 +453,7 @@ Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator 
     // remove reads for which last_init of prefix equal to last_init of ab
     set<string> not_amb;
     for (const auto& var: read_before_init) {
-        if (!sub_regexp->last_init(var)->is_equal(parent->prefix_last_init(var, prefix_index))) {
+        if (!sub_regexp->last_init(var)->is_equal(parent->prefix_last_init(var, prefix_index--))) {
             not_amb.insert(var);
         }
     }
@@ -560,7 +567,7 @@ Regexp *Regexp::conc_handle_init_without_read() {
             ((*it)->sub_regexp->regexp_type == alternationExpr || (*it)->regexp_type == kleeneStar) &&
             !may_read.empty()) {
             if ((*it)->sub_regexp->regexp_type == kleeneStar && !(*it)->sub_regexp->is_slided) {
-                (*it)->sub_regexp = (*it)->sub_regexp->open_kleene_with_read(may_read);
+                (*it)->sub_regexp = (*it)->sub_regexp->open_kleene_with_read(may_read, bnf_regexp, it);
             }
             (*it) = (*it)->take_out_alt_under_backref();
         }
@@ -569,7 +576,7 @@ Regexp *Regexp::conc_handle_init_without_read() {
             !may_read.empty()) {
             // kleene star
             if ((*it)->regexp_type == kleeneStar && !(*it)->is_slided) {
-                (*it) = (*it)->open_kleene_with_read(may_read);
+                (*it) = (*it)->open_kleene_with_read(may_read, bnf_regexp, it);
             }
 
             if ((*it)->regexp_type == alternationExpr) {
@@ -720,7 +727,7 @@ Regexp *Regexp::_bnf(bool under_kleene, bool under_alt) {
 
             // check unread init under kleene or under alternation ({}:1(&1|a))*
             n = bnf_regexp->sub_regexps.size();
-            if ((under_kleene || under_alt) && !bnf_regexp->unread_init.empty()) {
+            if (!bnf_regexp->unread_init.empty()) {
                 bnf_regexp = bnf_regexp->conc_handle_init_without_read();
             }
             // check read that may be uninitialized ({}:1&1|a)&1
