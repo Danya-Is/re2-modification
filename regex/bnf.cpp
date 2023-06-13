@@ -143,20 +143,12 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
             auto *new_alt = new Regexp(alternationExpr);
             for (auto *sub_r: alt->sub_regexps) {
                 auto *new_sub_r = new Regexp(concatenationExpr);
-
-                new_sub_r->copy_vars(sub_r);
-                if (sub_r->regexp_type == concatenationExpr){
-                    for (auto *sub_sub_r: sub_r->sub_regexps)
-                        new_sub_r->sub_regexps.push_back(sub_sub_r);
-                }
-                else
-                    new_sub_r->sub_regexps.push_back(sub_r);
+                new_sub_r->push_sub_regexp(sub_r);
 
                 for (auto *r: tail->sub_regexps){
                     auto *copy_r = copy(r);
                     new_sub_r->push_sub_regexp(copy_r);
                 }
-
 
                 new_alt->push_sub_regexp(new_sub_r);
             }
@@ -193,8 +185,7 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
 
             auto it = sub_regexps.begin();
             for (int i = 0; i < alt_pos; i++) {
-                head->concat_vars(*it);
-                head->sub_regexps.push_back(*it);
+                head->push_sub_regexp(*it);
                 it++;
             }
 
@@ -205,18 +196,9 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
                 auto *new_sub_r = new Regexp(concatenationExpr);
                 for (auto *r: head->sub_regexps) {
                     auto *copy_r = copy(r);
-                    new_sub_r->concat_vars(copy_r);
-                    new_sub_r->sub_regexps.push_back(copy_r);
+                    new_sub_r->push_sub_regexp(copy_r);
                 }
-
-                new_sub_r->concat_vars(sub_r);
-                if (sub_r->regexp_type == concatenationExpr){
-                    for (auto *sub_sub_r: sub_r->sub_regexps)
-                        new_sub_r->sub_regexps.push_back(sub_sub_r);
-                }
-                else
-                    new_sub_r->sub_regexps.push_back(sub_r);
-
+                new_sub_r->push_sub_regexp(sub_r);
                 new_alt->push_sub_regexp(new_sub_r);
             }
 
@@ -701,26 +683,11 @@ Regexp *Regexp::_bnf(bool under_kleene, bool under_alt) {
         for (auto sub_r : sub_regexps) {
             if (regexp_type == alternationExpr){
                 auto *new_sub_r = sub_r->_bnf(false, true);
-                if (bnf_regexp->sub_regexps.empty())
-                    bnf_regexp->copy_vars(new_sub_r);
-                else
-                    bnf_regexp->alt_vars(new_sub_r);
-                if (new_sub_r->regexp_type == alternationExpr) {
-                    for (auto *sub_sub_r:new_sub_r->sub_regexps)
-                        bnf_regexp->sub_regexps.push_back(sub_sub_r);
-                }
-                else
-                    bnf_regexp->sub_regexps.push_back(new_sub_r);
+                bnf_regexp->push_sub_regexp(new_sub_r);
             }
             else{
                 auto *new_sub_r = sub_r->_bnf();
-                bnf_regexp->concat_vars(new_sub_r);
-                if (sub_r->regexp_type == concatenationExpr){
-                    for (auto *sub_sub_r: new_sub_r->sub_regexps)
-                        bnf_regexp->sub_regexps.push_back(sub_sub_r);
-                }
-                else
-                    bnf_regexp->sub_regexps.push_back(new_sub_r);
+                bnf_regexp->push_sub_regexp(new_sub_r);
             }
         }
 
