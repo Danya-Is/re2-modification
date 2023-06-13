@@ -128,7 +128,7 @@ public:
         return nullptr;
     }
 
-    void push_sub_regexp(Regexp* sub_r) {
+    void push_sub_regexp(Regexp* sub_r, bool front = false) {
         if (regexp_type == concatenationExpr)
             concat_vars(sub_r);
         else if (regexp_type == alternationExpr) {
@@ -137,7 +137,10 @@ public:
             else
                 alt_vars(sub_r);
         }
-        sub_regexps.push_back(sub_r);
+        if (front)
+            sub_regexps.push_front(sub_r);
+        else
+            sub_regexps.push_back(sub_r);
     }
 
     void concat_vars(Regexp* regexp) {

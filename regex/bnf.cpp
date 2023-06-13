@@ -30,9 +30,6 @@ Regexp *Regexp::take_out_alt_under_backref() {
 
 Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string> read_vars) {
     // TODO delete epsilon in concatenation
-//    if (init_vars.empty() && read_vars.empty()) {
-//        return this;
-//    }
     auto *new_r = new Regexp();
     if (regexp_type == epsilon) {
         new_r->regexp_type = regexp_type;
@@ -92,7 +89,8 @@ Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string
             if (regexp_type == concatenationExpr)
             {
                 auto *new_sub_r = sub_r->clear_initializations_and_read(init_vars, read_vars);
-                new_r->push_sub_regexp(new_sub_r);
+                if (new_sub_r->regexp_type != epsilon)
+                    new_r->push_sub_regexp(new_sub_r);
             }
             else {
                 set<string> sub_init_vars_to_delete(init_vars.begin(), init_vars.end());
@@ -105,6 +103,8 @@ Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string
                 new_r->alt_vars(new_sub_r);
             }
         }
+        if (new_r->regexp_type == concatenationExpr && new_r->sub_regexps.empty())
+            new_r->sub_regexps.push_back(new Regexp(epsilon));
     }
     else if (regexp_type == kleeneStar || regexp_type == kleenePlus) {
         new_r->regexp_type = regexp_type;
@@ -472,18 +472,18 @@ Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator 
         auto it = sub_regexp->sub_regexps.end();
         it--;
         while (it != sub_regexp->sub_regexps.end()) {
-            b_conc->push_sub_regexp(*it);
+            b_conc->push_sub_regexp(*it, true);
             set<string> last_init(not_amb.begin(), not_amb.end());
             intersect_sets(last_init, (*it)->maybe_initialized);
+            it--;
             // нашли последнюю инициализацию, все что до нее пойдет в a_conc
             if (!last_init.empty()) {
                 break;
             }
-            it--;
         }
 
         while (it != sub_regexp->sub_regexps.end()) {
-            a_conc->push_sub_regexp(*it);
+            a_conc->push_sub_regexp(*it, true);
             it--;
         }
 
@@ -497,8 +497,9 @@ Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator 
 
         auto *sub_concat = new Regexp(concatenationExpr);
         auto *copy_b = copy(b_conc);
+        auto *copy_a = copy(a_conc);
         sub_concat->push_sub_regexp(copy_b);
-        sub_concat->push_sub_regexp(a_conc);
+        sub_concat->push_sub_regexp(copy_a);
         new_kleene->sub_regexp = sub_concat;
         new_kleene->star_kleene_vars(sub_concat);
 
