@@ -247,10 +247,13 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
     }
 }
 
-Regexp *Regexp::open_kleene_plus(set<string> vars) {
+Regexp *Regexp::open_kleene_plus(set<string> vars, bool need_for_cleen) {
     auto *new_kleene = this;
-    bind_init_to_read({});
-    new_kleene = clear_initializations_and_read(std::move(vars), {});
+    if (need_for_cleen){
+        map<string, Regexp*> empty_map;
+        bind_init_to_read(empty_map);
+        new_kleene = clear_initializations_and_read(std::move(vars), {});
+    }
     auto *new_sub = copy(sub_regexp);
 
     auto *concat = new Regexp(concatenationExpr);
@@ -259,13 +262,13 @@ Regexp *Regexp::open_kleene_plus(set<string> vars) {
     return concat;
 }
 
-Regexp *Regexp::open_kleene(set<string> vars) {
+Regexp *Regexp::open_kleene(set<string> vars, bool need_for_cleen) {
     /// a* == (a*a|eps), a+ == a*a
     if (regexp_type == kleeneStar) {
         auto *new_r = new Regexp(alternationExpr);
         new_r->sub_regexps.push_back(new Regexp(epsilon));
 
-        auto *concat = open_kleene_plus(vars);
+        auto *concat = open_kleene_plus(vars, need_for_cleen);
         new_r->push_sub_regexp(concat);
         return new_r;
     }
@@ -432,8 +435,10 @@ Regexp *Regexp::open_alt_under_kleene(bool min_init_order) {
     }
 }
 
-Regexp *Regexp::handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index) {
-    /// (ab)* = (a(ba)*b | eps), where a contains read and b contains init
+Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index) {
+    /// (r_1w_1r_2w_2)* -> sliding (r_1w_1r_2(w_2r_1w_1r_2)*w_2 | eps)
+    /// -> open kleene (r_1w_1r_2 ((w_2r_1w_1r_2)*w_2r_1w_1r_2 | eps) w_2 | eps)
+
     set<string> read_before_init(sub_regexp->definitely_uninit_read.begin(),
                                  sub_regexp->definitely_uninit_read.end());
     intersect_sets(read_before_init, sub_regexp->maybe_initialized);
@@ -446,23 +451,33 @@ Regexp *Regexp::handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator p
         }
     }
 
+    auto *bnf_r = new Regexp();
+    // для новой итерации, возможно ее потом еще надо будет раскрывать
+    auto *new_kleene = new Regexp(kleeneStar);
+    /// sliding (ab)* = (a(ba)*b | eps), where a contains read and b contains init
     if (!not_amb.empty()) {
-        auto var = *not_amb.begin();
+        // so regex looks like (rwrw...rw)*, and we need the last one w
+        string var;
 
         auto *a_conc = new Regexp(concatenationExpr);
         auto *b_conc = new Regexp(concatenationExpr);
 
-        auto it = sub_regexp->sub_regexps.begin();
+        auto it = sub_regexp->sub_regexps.end();
+        it--;
         while (it != sub_regexp->sub_regexps.end()) {
-            if ((*it)->maybe_initialized.find(var) != (*it)->maybe_initialized.end())
+            b_conc->push_sub_regexp(*it);
+            set<string> last_init(not_amb.begin(), not_amb.end());
+            intersect_sets(last_init, (*it)->maybe_initialized);
+            // нашли последнюю инициализацию, все что до нее пойдет в a_conc
+            if (!last_init.empty()) {
                 break;
-            a_conc->push_sub_regexp(*it);
-            it++;
+            }
+            it--;
         }
 
         while (it != sub_regexp->sub_regexps.end()) {
-            b_conc->push_sub_regexp(*it);
-            it++;
+            a_conc->push_sub_regexp(*it);
+            it--;
         }
 
         a_conc = a_conc->simplify_conc_alt();
@@ -473,7 +488,6 @@ Regexp *Regexp::handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator p
 
         auto *new_concat = new Regexp(concatenationExpr);
 
-        auto *new_kleene = new Regexp(kleeneStar);
         auto *sub_concat = new Regexp(concatenationExpr);
         auto *copy_b = copy(b_conc);
         sub_concat->push_sub_regexp(copy_b);
@@ -487,13 +501,40 @@ Regexp *Regexp::handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator p
 
         if (regexp_type == kleeneStar) {
             new_r->push_sub_regexp(new_concat);
-            return new_r;
+            bnf_r = new_r;
         }
         else {
-            return new_concat;
+            bnf_r = new_concat;
+        }
+
+        // произошел слайдинг
+        // теперь нужно раскрыть итерацию, если внутри нее еще остались rw
+        // из за того что слайдинг был по последней инициализации, все они точно удовлетворяют lastinit условию
+        read_before_init.clear();
+        read_before_init.insert(new_kleene->definitely_uninit_read.begin(),
+                                new_kleene->definitely_uninit_read.end());
+        intersect_sets(read_before_init, new_kleene->maybe_initialized);
+
+        if (!read_before_init.empty()) {
+            new_kleene = new_kleene->open_kleene({}, false);
+            new_kleene->is_slided = true;
         }
     }
-    else return this;
+    else if (!read_before_init.empty()){
+        bnf_r = open_kleene({}, false);
+        // (eps | a*a)
+        bnf_r->sub_regexps.back()->sub_regexps.front()->is_slided = true;
+    }
+
+    else bnf_r = this;
+    return bnf_r;
+}
+
+Regexp *Regexp::handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index) {
+    if (sub_regexp->regexp_type == concatenationExpr) {
+        return rw_in_conc_under_kleene(parent, prefix_index);
+    }
+
 }
 
 Regexp *Regexp::conc_handle_init_without_read() {
@@ -518,7 +559,7 @@ Regexp *Regexp::conc_handle_init_without_read() {
         if ((*it)->regexp_type == backreferenceExpr &&
             ((*it)->sub_regexp->regexp_type == alternationExpr || (*it)->regexp_type == kleeneStar) &&
             !may_read.empty()) {
-            if ((*it)->sub_regexp->regexp_type == kleeneStar) {
+            if ((*it)->sub_regexp->regexp_type == kleeneStar && !(*it)->sub_regexp->is_slided) {
                 (*it)->sub_regexp = (*it)->sub_regexp->open_kleene_with_read(may_read);
             }
             (*it) = (*it)->take_out_alt_under_backref();
@@ -527,24 +568,32 @@ Regexp *Regexp::conc_handle_init_without_read() {
         if (((*it)->regexp_type == alternationExpr || (*it)->regexp_type == kleeneStar) &&
             !may_read.empty()) {
             // kleene star
-            if ((*it)->regexp_type == kleeneStar) {
+            if ((*it)->regexp_type == kleeneStar && !(*it)->is_slided) {
                 (*it) = (*it)->open_kleene_with_read(may_read);
             }
-            // тут в любом случае будет альтернатива, которую надо раскрыть
-            auto *distributed = bnf_regexp->distribute_to_left(j);
-            bnf_regexp->regexp_type = distributed->regexp_type;
-            bnf_regexp->sub_regexps = distributed->sub_regexps;
-            bnf_regexp->change_vars(distributed);
 
-            if (bnf_regexp->regexp_type == alternationExpr)
-                break;
-            // дальше происходит преобразование внутри новой альтернативы
-            // получаем (<bnf>) ++ regex ++ regex
-            // продолжаем прогон сначала
-            j = 0;
-            it = bnf_regexp->sub_regexps.begin();
-            n = bnf_regexp->sub_regexps.size();
-            met_init.clear();
+            if ((*it)->regexp_type == alternationExpr) {
+                // альтернатива, которую надо раскрыть
+                auto *distributed = bnf_regexp->distribute_to_left(j);
+                bnf_regexp->regexp_type = distributed->regexp_type;
+                bnf_regexp->sub_regexps = distributed->sub_regexps;
+                bnf_regexp->change_vars(distributed);
+
+                if (bnf_regexp->regexp_type == alternationExpr)
+                    break;
+
+                // дальше происходит преобразование внутри новой альтернативы
+                // получаем (<bnf>) ++ regex ++ regex
+                // продолжаем прогон сначала
+                j = 0;
+                it = bnf_regexp->sub_regexps.begin();
+                n = bnf_regexp->sub_regexps.size();
+                met_init.clear();
+            }
+            else {
+                j++;
+                it++;
+            }
         }
             // иначе двигаемся вперед
         else {
@@ -582,7 +631,7 @@ Regexp *Regexp::conc_handle_read_without_init() {
         if ((*it)->regexp_type == backreferenceExpr &&
             (((*it)->sub_regexp->regexp_type == alternationExpr || (*it)->sub_regexp->regexp_type == kleeneStar)) &&
             !maybe_init.empty()) {
-            if ((*it)->sub_regexp->regexp_type == kleeneStar) {
+            if ((*it)->sub_regexp->regexp_type == kleeneStar && !(*it)->sub_regexp->is_slided) {
                 (*it)->sub_regexp = (*it)->sub_regexp->open_kleene({});
             }
             (*it) = (*it)->take_out_alt_under_backref();
@@ -591,25 +640,32 @@ Regexp *Regexp::conc_handle_read_without_init() {
         if (((*it)->regexp_type == alternationExpr || (*it)->regexp_type == kleeneStar) &&
             !maybe_init.empty()) {
             // kleene star
-            if ((*it)->regexp_type == kleeneStar) {
+            if ((*it)->regexp_type == kleeneStar && !(*it)->is_slided) {
                 (*it) = (*it)->open_kleene({});
             }
-            // тут в любом случае будет альтернатива, которую надо раскрыть
-            auto *distributed = bnf_regexp->distribute_to_right(j);
-            bnf_regexp->regexp_type = distributed->regexp_type;
-            bnf_regexp->sub_regexps = distributed->sub_regexps;
-            bnf_regexp->change_vars(distributed);
+            if ((*it)->regexp_type == alternationExpr) {
+                // альтернатива, которую надо раскрыть
+                auto *distributed = bnf_regexp->distribute_to_right(j);
+                bnf_regexp->regexp_type = distributed->regexp_type;
+                bnf_regexp->sub_regexps = distributed->sub_regexps;
+                bnf_regexp->change_vars(distributed);
 
-            if (bnf_regexp->regexp_type == alternationExpr)
-                break;
-            // дальше происходит преобразование внутри новой альтернативы
-            // получаем regex ++ regex ++ (<bnf>)
-            // продолжаем прогон с конца
-            n = bnf_regexp->sub_regexps.size();
-            j = n - 1;
-            it = bnf_regexp->sub_regexps.end();
-            it--;
-            met_read.clear();
+                if (bnf_regexp->regexp_type == alternationExpr)
+                    break;
+
+                // дальше происходит преобразование внутри новой альтернативы
+                // получаем regex ++ regex ++ (<bnf>)
+                // продолжаем прогон с конца
+                n = bnf_regexp->sub_regexps.size();
+                j = n - 1;
+                it = bnf_regexp->sub_regexps.end();
+                it--;
+                met_read.clear();
+            }
+            else {
+                it--;
+                j--;
+            }
         }
         else {
             it--;
@@ -676,7 +732,7 @@ Regexp *Regexp::_bnf(bool under_kleene, bool under_alt) {
                 //check rw under kleene
                 bool changed = false;
                 for (auto it = bnf_regexp->sub_regexps.begin(); it != bnf_regexp->sub_regexps.end(); it++) {
-                    if ((*it)->regexp_type == kleeneStar) {
+                    if ((*it)->regexp_type == kleeneStar && !(*it)->is_slided) {
                         auto old_r = *it;
                         *it = (*it)->handle_rw_under_kleene(bnf_regexp, it);
                         changed = !old_r->is_equal(*it);
@@ -715,6 +771,8 @@ Regexp *Regexp::_bnf(bool under_kleene, bool under_alt) {
         return bnf_regexp;
     }
     else if (regexp_type == kleeneStar || regexp_type == kleenePlus) {
+        if (is_slided)
+            return this;
         auto *bnf_regexp = new Regexp(regexp_type);
         auto *new_sub_r = sub_regexp->_bnf(true);
         bnf_regexp->sub_regexp = new_sub_r;
@@ -747,7 +805,8 @@ Regexp *Regexp::bnf() {
 
     cout << new_r->to_string() << endl;
 
-    new_r->bind_init_to_read({});
+    map<string, Regexp*> empty_map;
+    new_r->bind_init_to_read(empty_map);
     new_r = new_r->clear_initializations_and_read(new_r->definitely_unread_init, new_r->uninited_read);
 
     return new_r;

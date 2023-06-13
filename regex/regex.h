@@ -87,6 +87,9 @@ public:
     //    TODO
     bool have_backreference;
 
+    /// итерация над rw, которая уже была раскрыта, и соответственно должна далее игнорироваться, чтобы не зациклиться
+    bool is_slided;
+
     /// точно инициализированные
     map<string, list<Regexp*>> initialized;
     /// точно прочитанные
@@ -141,12 +144,14 @@ public:
         if (sub_regexps.empty())
             copy_vars(regexp);
         else {
-            union_sets(uninited_read, regexp->uninited_read);
+            set<string> new_uninited_read(regexp->uninited_read.begin(), regexp->uninited_read.end());
             for (const auto& now_init: initialized) {
-                if (uninited_read.find(now_init.first) != uninited_read.end()) {
-                    uninited_read.erase(now_init.first);
+                if (new_uninited_read.find(now_init.first) != new_uninited_read.end()) {
+                    new_uninited_read.erase(now_init.first);
                 }
             }
+            union_sets(uninited_read, new_uninited_read);
+
             union_sets(unread_init, regexp->unread_init);
             for (const auto& now_read: regexp->read) {
                 if (unread_init.find(now_read) != unread_init.end()) {
@@ -154,12 +159,13 @@ public:
                 }
             }
 
-            union_sets(definitely_uninit_read, regexp->definitely_uninit_read);
+            set<string> new_definitely_uninited_read(regexp->uninited_read.begin(), regexp->uninited_read.end());
             for (const auto& now_maybe_init: maybe_initialized) {
-                if (definitely_uninit_read.find(now_maybe_init) != definitely_uninit_read.end()) {
-                    definitely_uninit_read.erase(now_maybe_init);
+                if (new_definitely_uninited_read.find(now_maybe_init) != new_definitely_uninited_read.end()) {
+                    new_definitely_uninited_read.erase(now_maybe_init);
                 }
             }
+            union_sets(definitely_uninit_read, new_definitely_uninited_read);
 
             for (const auto& now_maybe_read: regexp->maybe_read) {
                 if (definitely_unread_init.find(now_maybe_read) != definitely_unread_init.end()) {
@@ -281,10 +287,6 @@ public:
     void do_backreference(string name);
     void do_enumeration();
 
-    /// Проверяет корректность расширенного регулярного выражения по правилу:
-    /// чтение из переменной не может использоваться раньше инициализации переменной,
-    /// при этом инициализировать переменную, в смысле записи выражения, можно ровно один раз.
-    /// Допускаются выражения `({a*}:1|&1)*`
     bool is_backref_correct();
     void _is_backref_correct(set<string> &initialized_vars,
                              set<string> &read_before_init,
@@ -302,8 +304,8 @@ public:
     /// удаление лишних инициализий после преобразований
     Regexp *clear_initializations_and_read(set<string> vars, set<string> read_vars = {});
 
-    Regexp* open_kleene_plus(set<string> vars);
-    Regexp* open_kleene(set<string> vars);
+    Regexp* open_kleene_plus(set<string> vars, bool need_for_cleen = true);
+    Regexp* open_kleene(set<string> vars, bool need_for_cleen = true);
     Regexp* open_kleene_with_read(set<string> vars);
 
     template<class Compare>
@@ -311,6 +313,7 @@ public:
     Regexp* open_alt_under_kleene(bool min_init_order = false);
     Regexp* _open_alt_under_kleene(const string& var);
 
+    Regexp* rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index);
     Regexp* handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index);
 
     Regexp* take_out_alt_under_backref();
@@ -327,7 +330,7 @@ public:
     Regexp* _reverse();
     Regexp* reverse();
 
-    void bind_init_to_read(map<string, list<Regexp *>> init);
+    void bind_init_to_read(map<string, Regexp *>& init);
 
     BinaryTree* to_binary_tree();
 
