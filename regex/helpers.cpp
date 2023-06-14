@@ -55,6 +55,12 @@ void Regexp::concat_vars(Regexp *regexp) {
     if (sub_regexps.empty())
         copy_vars(regexp);
     else {
+        for (const auto& now_init: regexp->maybe_initialized) {
+            if (definitely_uninit_read.find(now_init) != definitely_uninit_read.end()) {
+                rw_vars.insert(now_init);
+            }
+        }
+
         set<string> new_uninited_read(regexp->uninited_read.begin(), regexp->uninited_read.end());
         for (const auto& now_init: initialized) {
             if (new_uninited_read.find(now_init.first) != new_uninited_read.end()) {
@@ -114,6 +120,7 @@ void Regexp::star_kleene_vars(Regexp *regexp) {
 
 void Regexp::copy_vars(Regexp *regexp) {
     union_sets(uninited_read, regexp->uninited_read);
+    union_sets(rw_vars, regexp->rw_vars);
     union_sets(definitely_unread_init, regexp->definitely_unread_init);
     union_sets(unread_init, regexp->unread_init);
     if (regexp_type != alternationExpr)

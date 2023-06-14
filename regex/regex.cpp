@@ -7,7 +7,10 @@
 
 
 bool Regexp::is_equal(Regexp *other) {
-    if (regexp_type != other->regexp_type)
+    if (!other)
+        return false;
+    else
+        if (regexp_type != other->regexp_type)
         return false;
     else {
         if (regexp_type == epsilon)
@@ -157,6 +160,10 @@ Regexp *Regexp::simplify_conc_alt() {
     if ((regexp_type == concatenationExpr || regexp_type == alternationExpr) &&
             sub_regexps.size() == 1) {
         return sub_regexps.front();
+    }
+    else if ((regexp_type == concatenationExpr || regexp_type == alternationExpr) &&
+             sub_regexps.empty()) {
+        return new Regexp(epsilon);
     }
     else
         return this;

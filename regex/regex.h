@@ -109,6 +109,9 @@ public:
     /// для чтений перед инициализацией под итерацией `(&1{(a|b)}:1)*`
     set<string> definitely_uninit_read;
 
+    /// переменные строящие rw блок на текущем уровне, a(&1|{}:1)b не считается
+    set<string> rw_vars;
+
     bool is_equal(Regexp* other);
 
     Regexp* last_init(const string& var) {
@@ -126,6 +129,16 @@ public:
             it--;
         }
         return nullptr;
+    }
+
+    set<string> prefix_read(list<Regexp*>::iterator it) {
+        set<string> p_read;
+        it--;
+        while (it != sub_regexps.end()) {
+            p_read.insert((*it)->maybe_read.begin(), (*it)->maybe_read.end());
+            it--;
+        }
+        return p_read;
     }
 
     void _push_sub_regexp(Regexp *sub_r, bool front = false);
@@ -184,18 +197,22 @@ public:
     Regexp* open_alt_under_kleene(bool min_init_order = false);
     Regexp* _open_alt_under_kleene(const string& var);
 
+    Regexp* denesting(Regexp* a_alt, Regexp* b_alt);
     Regexp* rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index);
+    Regexp* rw_in_alt_under_kleene();
     Regexp* handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index);
 
     Regexp* take_out_alt_under_backref();
     Regexp* distribute_to_right(int alt_pos);
     Regexp* distribute_to_left(int alt_pos);
+    Regexp* distribute_completely(int alt_pos);
 
     Regexp* conc_handle_init_without_read();
     Regexp* conc_handle_read_without_init();
 
     Regexp* bnf();
-    Regexp* _bnf(bool under_kleene = false, bool under_alt = false);
+    /// parent важен только если это конкатенация (rw блоки)
+    Regexp* _bnf(Regexp* parent, bool under_kleene = false, list<Regexp*>::iterator cur_position = list<Regexp*>().begin());
 
     Regexp* replace_read_write(set<Regexp*>& initialized_in_reverse);
     Regexp* _reverse();
@@ -209,6 +226,8 @@ public:
 
     bool match(const string& input_str);
 };
+
+void run_examples();
 
 void match(string regexp_str);
 

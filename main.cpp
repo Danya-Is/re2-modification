@@ -2,15 +2,18 @@
 #include "regex/regex.h"
 #include "bt/binary_tree.h"
 #include "automata.h"
+#include <cstring>
 
 using namespace std;
 
 int main(int argc, char *argv[]) {
-
-    if (argv[1] == "-match") {
+    if (argc > 1 && ::strcmp(argv[1],"-match") == 0) {
             string regex;
             cin >> regex;
             match(regex);
+    }
+    if (argc > 1 && ::strcmp(argv[1],"-test-bnf") == 0) {
+            run_examples();
     }
     else {
         string regexp_str;

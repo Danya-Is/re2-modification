@@ -11,6 +11,9 @@ Regexp* Regexp::parse_regexp(string &s) {
 
     while (!s.empty()) {
         char c = s[0];
+        if (c == ' ') {
+            continue;
+        }
         if (c == '*' || c == '+') {
             regexp->do_kleene(c);
         } else if (c == '(') {
