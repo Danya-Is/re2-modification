@@ -1,10 +1,13 @@
 #include <iostream>
+#include <fstream>
 #include <algorithm>
 #include <string>
 #include <utility>
 #include <queue>
 
 #include "regex.h"
+
+fstream log;
 
 
 Regexp *Regexp::take_out_alt_under_backref() {
@@ -21,6 +24,8 @@ Regexp *Regexp::take_out_alt_under_backref() {
         }
 
         new_r->copy_vars(this);
+        if (log.is_open())
+            log << to_string() << "->" << new_r->to_string() << endl;
         return new_r;
     }
     else {
@@ -133,6 +138,9 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
             auto* alt = *it;
             it++;
 
+            if (it == sub_regexps.end())
+                return this;
+
             auto* tail = new Regexp(concatenationExpr);
             set<string> uninited_read_t;
             for (int i = alt_pos + 1; i < n; i++) {
@@ -153,10 +161,13 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
                 new_alt->push_sub_regexp(new_sub_r);
             }
 
-            auto *new_r = new_alt->_bnf(nullptr);
-            ::free(new_alt);
-            new_regexp->concat_vars(new_r);
-            new_regexp->sub_regexps.push_back(new_r);
+            new_regexp->push_sub_regexp(new_alt);
+            if (log.is_open()) {
+                log << "distribute to right" << endl;
+                log << to_string() << " -> " << new_alt->to_string() << endl;
+            }
+
+            new_alt = new_alt->_bnf(nullptr);
 
             if (new_regexp->sub_regexps.size() == 1) {
                 new_regexp->regexp_type = alternationExpr;
@@ -177,6 +188,7 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
 
 Regexp *Regexp::distribute_to_left(int alt_pos) {
     /// a(b|c) -> (ab|ac)
+    log << "distribute to left start" << endl;
     if (regexp_type == concatenationExpr) {
         size_t n = sub_regexps.size();
         if (alt_pos > 0) {
@@ -191,6 +203,9 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
 
             auto* alt = *it;
 
+            if (it == sub_regexps.begin())
+                return this;
+
             auto *new_alt = new Regexp(alternationExpr);
             for (auto *sub_r: alt->sub_regexps) {
                 auto *new_sub_r = new Regexp(concatenationExpr);
@@ -200,6 +215,11 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
                 }
                 new_sub_r->push_sub_regexp(sub_r);
                 new_alt->push_sub_regexp(new_sub_r);
+            }
+
+            if (log.is_open()) {
+                log << "distribute to left" << endl;
+                log << "prefix -> " << new_alt->to_string() << endl;
             }
 
             auto* new_r = new_alt->_bnf(nullptr);
@@ -225,7 +245,7 @@ Regexp *Regexp::distribute_to_left(int alt_pos) {
         }
     }
     else {
-        ::printf("Expected concatenation in distribute()");
+        cout << "Expected concatenation in distribute()"<< endl;
     }
 }
 
@@ -264,6 +284,10 @@ Regexp *Regexp::open_kleene(set<string> vars, bool need_for_cleen) {
 
         auto *concat = open_kleene_plus(vars, need_for_cleen);
         new_r->push_sub_regexp(concat);
+        if (log.is_open()) {
+            log << "open kleene" << endl;
+            log << to_string() << " -> " << new_r->to_string() << endl;
+        }
         return new_r;
     }
     else if (regexp_type == kleenePlus) {
@@ -389,6 +413,11 @@ Regexp *Regexp::denesting(Regexp *a_alt, Regexp *b_alt) {
     auto *new_r = new Regexp(concatenationExpr);
     new_r->push_sub_regexp(a_kleene);
     new_r->push_sub_regexp(second_kleene);
+
+    if (log.is_open()) {
+        log << "denesting" << endl;
+        log << to_string() << " -> " << new_r->to_string() << endl;
+    }
 
     new_r = new_r->_bnf(nullptr);
 
@@ -545,6 +574,11 @@ Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator 
             new_kleene = new_kleene->open_kleene({}, false);
             new_kleene->is_slided = true;
         }
+
+        if (log.is_open()) {
+            log << "denesting + sliding" << endl;
+            log << to_string() << " -> " << bnf_r->to_string() << endl;
+        }
     }
     else if (!sub_regexp->rw_vars.empty()){
         bnf_r = open_kleene({}, false);
@@ -577,6 +611,11 @@ Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator 
 
         if ((*init_it)->regexp_type == alternationExpr)
             sub_regexp = sub_regexp->distribute_completely(init_pos);
+
+        if (log.is_open()) {
+            log << "open alt in conc under kleene" << endl;
+            log << " -> " << to_string() << endl;
+        }
         return this;
     }
 
@@ -651,14 +690,18 @@ Regexp *Regexp::conc_handle_init_without_read() {
             }
 
             if ((*it)->regexp_type == alternationExpr) {
+                if (log.is_open()) {
+                    log << "init without read " << to_string() << endl;
+                }
+
                 // альтернатива, которую надо раскрыть
                 auto *distributed = bnf_regexp->distribute_to_left(j);
                 bnf_regexp->regexp_type = distributed->regexp_type;
                 bnf_regexp->sub_regexps = distributed->sub_regexps;
                 bnf_regexp->change_vars(distributed);
 
-                if (bnf_regexp->regexp_type == alternationExpr)
-                    break;
+//                if (bnf_regexp->regexp_type == alternationExpr)
+                break;
 
                 // дальше происходит преобразование внутри новой альтернативы
                 // получаем (<bnf>) ++ regex ++ regex
@@ -722,6 +765,10 @@ Regexp *Regexp::conc_handle_read_without_init() {
                 (*it) = (*it)->open_kleene({});
             }
             if ((*it)->regexp_type == alternationExpr) {
+                if (log.is_open()) {
+                    log << "read without init" << to_string() << endl;
+                }
+
                 // альтернатива, которую надо раскрыть
                 auto *distributed = bnf_regexp->distribute_to_right(j);
                 bnf_regexp->regexp_type = distributed->regexp_type;
@@ -862,6 +909,9 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
 }
 
 Regexp *Regexp::bnf() {
+    log.open("/home/daria/CLionProjects/re2-modification/log.txt", std::ofstream::out | std::ofstream::trunc);
+    log.clear();
+
     auto *new_r = _bnf(nullptr);
 
     if (new_r->is_bad_bnf)
@@ -870,6 +920,8 @@ Regexp *Regexp::bnf() {
     map<string, Regexp*> empty_map;
     new_r->bind_init_to_read(empty_map);
     new_r = new_r->clear_initializations_and_read(new_r->definitely_unread_init, new_r->uninited_read);
+
+    log.close();
 
     return new_r;
 }
