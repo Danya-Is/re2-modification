@@ -102,6 +102,8 @@ Regexp *Regexp::replace_read_write(set<Regexp *> &initialized_in_reverse) {
 }
 
 Regexp *Regexp::reverse() {
+    if (is_bad_bnf)
+        cout << "Regex is not reversable in this version";
     set<Regexp*> empty_set;
     auto *reversed = _reverse();
 

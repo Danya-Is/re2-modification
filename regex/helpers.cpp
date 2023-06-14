@@ -1,6 +1,51 @@
 #include "regex.h"
 
 
+map<string, list<string>> Regexp::get_inner_reads() {
+    map<string, list<string>> inner_reads;
+    if (regexp_type == kleenePlus || regexp_type == backreferenceExpr) {
+        auto new_inner_reads = sub_regexp->get_inner_reads();
+        for (auto new_read: new_inner_reads) {
+            inner_reads[new_read.first].merge(new_read.second);
+        }
+        if (regexp_type == backreferenceExpr) {
+            for (auto new_read: maybe_read)
+                inner_reads[variable].push_back(new_read);
+        }
+    }
+    return inner_reads;
+}
+
+bool Regexp::is_cross_references() {
+    // инициализации и соответствующие чтения в них
+    map<string, list<string>> inner_reads;
+    set<string> init;
+
+    for (auto *sub_r: sub_regexps) {
+        for (const auto& new_read: sub_r->maybe_read) {
+            // ссылка была проинициализирована с зависимостью от другого чтения
+            if (inner_reads.find(new_read) != inner_reads.end()) {
+                auto dep_reads = inner_reads[new_read];
+                for (const auto& dep_read: dep_reads) {
+                    // и это чтение было повторно инициализировано до использования той ссылки
+                    if (init.find(dep_read) != init.end())
+                        return true;
+                }
+                inner_reads.erase(new_read);
+            }
+        }
+        if (!sub_r->initialized.empty()) {
+            auto new_inner_reads = sub_r->get_inner_reads();
+            for (auto new_read: new_inner_reads) {
+                inner_reads[new_read.first].merge(new_read.second);
+            }
+        }
+        union_sets(init, sub_r->maybe_initialized);
+    }
+    return false;
+}
+
+
 void Regexp::_push_sub_regexp(Regexp *sub_r, bool front) {
     if (front)
         sub_regexps.push_front(sub_r);
@@ -52,6 +97,8 @@ void Regexp::push_sub_regexp(Regexp *sub_r, bool front) {
 }
 
 void Regexp::concat_vars(Regexp *regexp) {
+    if (regexp->is_bad_bnf)
+        is_bad_bnf = true;
     if (sub_regexps.empty())
         copy_vars(regexp);
     else {
@@ -99,6 +146,8 @@ void Regexp::concat_vars(Regexp *regexp) {
 }
 
 void Regexp::alt_vars(Regexp *regexp) {
+    if (regexp->is_bad_bnf)
+        is_bad_bnf = true;
     union_sets(uninited_read, regexp->uninited_read);
     union_sets(unread_init, regexp->unread_init);
     union_sets(definitely_unread_init, regexp->definitely_unread_init);
@@ -110,6 +159,8 @@ void Regexp::alt_vars(Regexp *regexp) {
 }
 
 void Regexp::star_kleene_vars(Regexp *regexp) {
+    if (regexp->is_bad_bnf)
+        is_bad_bnf = true;
     maybe_initialized = regexp->maybe_initialized;
     maybe_read = regexp->maybe_read;
     uninited_read = regexp->uninited_read;
@@ -119,6 +170,8 @@ void Regexp::star_kleene_vars(Regexp *regexp) {
 }
 
 void Regexp::copy_vars(Regexp *regexp) {
+    if (regexp->is_bad_bnf)
+        is_bad_bnf = true;
     union_sets(uninited_read, regexp->uninited_read);
     union_sets(rw_vars, regexp->rw_vars);
     union_sets(definitely_unread_init, regexp->definitely_unread_init);

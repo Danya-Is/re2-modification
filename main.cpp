@@ -21,12 +21,14 @@ int main(int argc, char *argv[]) {
         Regexp* regexp = Regexp::parse_regexp(regexp_str);
         regexp->is_backref_correct();
         auto *bnf_regex = regexp->bnf();
-        auto bnf_str = bnf_regex->to_string();
-        cout << "BNF: " << bnf_str << endl;
+        if (!bnf_regex->is_bad_bnf) {
+            auto bnf_str = bnf_regex->to_string();
+            cout << "BNF: " << bnf_str << endl;
 
-        auto *reverse_regex = bnf_regex->reverse();
-        auto reverse_str = reverse_regex->to_string();
-        cout << "Reverse: " << reverse_str << endl;
+            auto *reverse_regex = bnf_regex->reverse();
+            auto reverse_str = reverse_regex->to_string();
+            cout << "Reverse: " << reverse_str << endl;
+        }
 
         while (regexp_str != "exit") {
             cin >> regexp_str;
@@ -34,12 +36,14 @@ int main(int argc, char *argv[]) {
             regexp->is_backref_correct();
 
             bnf_regex = regexp->bnf();
-            bnf_str =bnf_regex->to_string();
-            cout << "BNF: " << bnf_str << endl;
+            if (!bnf_regex->is_bad_bnf) {
+                auto bnf_str =bnf_regex->to_string();
+                cout << "BNF: " << bnf_str << endl;
 
-            reverse_regex = bnf_regex->reverse();
-            reverse_str = reverse_regex->to_string();
-            cout << "Reverse: " << reverse_str << endl;
+                auto *reverse_regex = bnf_regex->reverse();
+                auto reverse_str = reverse_regex->to_string();
+                cout << "Reverse: " << reverse_str << endl;
+            }
         }
     }
     return 0;

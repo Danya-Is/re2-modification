@@ -450,6 +450,13 @@ Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator 
     /// (r_1w_1r_2w_2)* -> sliding (r_1w_1r_2(w_2r_1w_1r_2)*w_2 | eps)
     /// -> open kleene (r_1w_1r_2 ((w_2r_1w_1r_2)*w_2r_1w_1r_2 | eps) w_2 | eps)
 
+    if (sub_regexp->is_cross_references()) {
+        this->is_bad_bnf = true;
+        cout << this->to_string() << endl;
+        cout << "Обращение регулярок типа ({&j}:i {}:j &i)* не поддерживается, так как требует введение вспомогательных ячеек" << endl;
+        return this;
+    }
+
     set<string> read_before_init(sub_regexp->definitely_uninit_read.begin(),
                                  sub_regexp->definitely_uninit_read.end());
     intersect_sets(read_before_init, sub_regexp->maybe_initialized);
@@ -753,7 +760,7 @@ Regexp *Regexp::conc_handle_read_without_init() {
 
 Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator cur_position) {
     if (regexp_type == epsilon ||  regexp_type == literal ||
-    regexp_type == reference) {
+    regexp_type == reference || is_bad_bnf) {
         return this;
     }
     else if (regexp_type == alternationExpr || regexp_type == concatenationExpr) {
@@ -771,6 +778,9 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
                 bnf_regexp->push_sub_regexp(new_sub_r);
             }
         }
+
+        if (bnf_regexp->is_bad_bnf)
+            return bnf_regexp;
 
         if (bnf_regexp->regexp_type == concatenationExpr) {
 
@@ -831,7 +841,7 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
             bnf_regexp = bnf_regexp->handle_rw_under_kleene(parent, cur_position);
             bool changed = !old_r->is_equal(bnf_regexp);
 
-            if (changed) {
+            if (changed && !bnf_regexp->is_bad_bnf) {
                 bnf_regexp = bnf_regexp->_bnf(parent, false, cur_position);
             }
         }
@@ -853,6 +863,9 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
 
 Regexp *Regexp::bnf() {
     auto *new_r = _bnf(nullptr);
+
+    if (new_r->is_bad_bnf)
+        return new_r;
 
     map<string, Regexp*> empty_map;
     new_r->bind_init_to_read(empty_map);

@@ -87,6 +87,9 @@ public:
     //    TODO
     bool have_backreference;
 
+    /// регулярка не обращается в текущей версии алгоритма
+    bool is_bad_bnf;
+
     /// итерация над rw, которая уже была раскрыта, и соответственно должна далее игнорироваться, чтобы не зациклиться
     bool is_slided;
 
@@ -131,15 +134,9 @@ public:
         return nullptr;
     }
 
-    set<string> prefix_read(list<Regexp*>::iterator it) {
-        set<string> p_read;
-        it--;
-        while (it != sub_regexps.end()) {
-            p_read.insert((*it)->maybe_read.begin(), (*it)->maybe_read.end());
-            it--;
-        }
-        return p_read;
-    }
+    /// ситуации под инициализацией в духе ({&j}:i {}:j &i)*
+    bool is_cross_references();
+    map<string, list<string>> get_inner_reads();
 
     void _push_sub_regexp(Regexp *sub_r, bool front = false);
     void push_concat(Regexp* sub_r, bool front = false);
