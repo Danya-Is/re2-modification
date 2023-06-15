@@ -88,6 +88,8 @@ public:
     //    TODO
     bool have_backreference;
 
+    bool is_one_unamb = false;
+
     /// регулярка не обращается в текущей версии алгоритма
     bool is_bad_bnf;
 
@@ -208,7 +210,7 @@ public:
     Regexp* conc_handle_init_without_read();
     Regexp* conc_handle_read_without_init();
 
-    Regexp* bnf();
+    Regexp* bnf(bool is_log = false);
     /// parent важен только если это конкатенация (rw блоки)
     Regexp* _bnf(Regexp* parent, bool under_kleene = false, list<Regexp*>::iterator cur_position = list<Regexp*>().begin());
 
@@ -220,7 +222,7 @@ public:
 
     BinaryTree* to_binary_tree();
 
-    Automata * compile(bool &is_mfa);
+    Automata * compile(bool &is_mfa, bool use_reverse);
 
     bool match(const string& input_str);
 };

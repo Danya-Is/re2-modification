@@ -172,6 +172,8 @@ void Regexp::star_kleene_vars(Regexp *regexp) {
 void Regexp::copy_vars(Regexp *regexp) {
     if (regexp->is_bad_bnf)
         is_bad_bnf = true;
+    if (regexp_type == reference && regexp->regexp_type == reference)
+        reference_to = regexp->reference_to;
     union_sets(uninited_read, regexp->uninited_read);
     union_sets(rw_vars, regexp->rw_vars);
     union_sets(definitely_unread_init, regexp->definitely_unread_init);

@@ -251,7 +251,8 @@ BinaryTree *Regexp::to_binary_tree() {
     }
     else {
         if (sub_regexps.size() < 2) {
-            printf("Error: less than two sub-regexps");
+            tr->type = sub_regexps.front()->regexp_type;
+            tr = sub_regexps.front()->to_binary_tree();
         }
         else if (sub_regexps.size() == 2) {
             tr->left = sub_regexps.front()->to_binary_tree();
@@ -272,7 +273,7 @@ BinaryTree *Regexp::to_binary_tree() {
     return tr;
 }
 
-Automata* Regexp::compile(bool &is_mfa) {
+Automata* Regexp::compile(bool &is_mfa, bool use_reverse) {
     is_backref_correct();
     auto *bt = to_binary_tree();
 //    bt = bt->toSSNF();
@@ -280,19 +281,24 @@ Automata* Regexp::compile(bool &is_mfa) {
     if (!maybe_initialized.empty() || !maybe_read.empty()) {
         cout << "Используется память" << endl;
         is_mfa = true;
-        if (!bt->is_one_unambiguity()) {
+        bool is_one_unam = bt->is_one_unambiguity();
+        if (!is_one_unam && use_reverse) {
             auto* bnf_regexp = bnf();
-            auto *reverse_bnf = bnf_regexp->reverse();
             cout << "BNF: " << bnf_regexp->to_string() << endl;
+            auto *reverse_bnf = bnf_regexp->reverse();
             cout << "Reverse: " << reverse_bnf->to_string() << endl;
             auto *reverse_bt = reverse_bnf->to_binary_tree();
+
             auto *MFA = reverse_bt->toMFA();
             MFA->is_reversed = true;
             MFA->draw("reverse_mfa");
             return MFA;
         }
         else {
-            cout << "1-однозначность" << endl;
+            if (is_one_unam){
+                cout << "1-однозначность" << endl;
+                this->is_one_unamb = true;
+            }
             bt->toSSNF();
             auto *MFA = bt->toMFA();
             MFA->draw("mfa");

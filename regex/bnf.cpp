@@ -79,6 +79,7 @@ Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string
             }
             else if (new_r->regexp_type == reference) {
                 new_r->variable = sub_regexp->variable;
+                new_r->reference_to = sub_regexp->reference_to;
             }
             else {
                 new_r->rune = sub_regexp->rune;
@@ -911,9 +912,10 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
     }
 }
 
-Regexp *Regexp::bnf() {
-    log.open("log.txt", std::ofstream::out | std::ofstream::trunc);
-    log.clear();
+Regexp *Regexp::bnf(bool is_log) {
+    if (is_log) {
+        log.open("log.txt", std::ofstream::out | std::ofstream::trunc);
+    }
 
     auto *new_r = _bnf(nullptr);
 

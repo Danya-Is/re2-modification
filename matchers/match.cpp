@@ -12,7 +12,7 @@ void match(string regexp_str) {
     Regexp* regexp = Regexp::parse_regexp(regexp_str);
 
     bool is_mfa = false;
-    auto *automata = regexp->compile(is_mfa);
+    auto *automata = regexp->compile(is_mfa, false);
     MFA* new_automata = nullptr;
     if (is_mfa) {
         new_automata = static_cast<MFA*>(automata);
