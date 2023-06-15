@@ -57,8 +57,6 @@ with open(f'../test/example_{example_number}/python_results.txt', 'r') as res_fi
     ys2 = [float(y) for y in ys2]
     ys1 = [float(y) for y in ys1]
 
-    plt.figure(dpi=400)
-
     if len(ys3) > 0:
         fig, axs = plt.subplots(1, 3, figsize=(30,10))
     else:
@@ -84,3 +82,4 @@ with open(f'../test/example_{example_number}/python_results.txt', 'r') as res_fi
         axs[1].set_title("python")
 
     plt.savefig(f'../test/example_{example_number}/result.png')
+    plt.show()
