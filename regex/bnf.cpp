@@ -19,6 +19,10 @@ Regexp *Regexp::take_out_alt_under_backref() {
             new_sub_r->variable = variable;
             new_sub_r->sub_regexp = sub_r;
             new_sub_r->copy_vars(sub_r);
+            new_sub_r->initialized[variable].push_back(new_sub_r);
+            new_sub_r->maybe_initialized.insert(variable);
+            new_sub_r->unread_init.insert(variable);
+            new_sub_r->definitely_unread_init.insert(variable);
 
             new_r->sub_regexps.push_back(new_sub_r);
         }
@@ -915,6 +919,8 @@ Regexp *Regexp::bnf() {
 
     if (new_r->is_bad_bnf)
         return new_r;
+
+    cout << new_r->to_string() << endl;
 
     map<string, Regexp*> empty_map;
     new_r->bind_init_to_read(empty_map);
