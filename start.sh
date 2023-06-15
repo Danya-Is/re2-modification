@@ -1,4 +1,4 @@
 #!/bin/bash
 cmake build
 make
-./diploma
+./diploma -match

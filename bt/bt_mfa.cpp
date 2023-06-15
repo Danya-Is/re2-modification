@@ -11,7 +11,7 @@ MFA* BinaryTree::toMFA() {
     }
     else if (type == literal) {
         auto* node = new MemoryNode();
-        string by(&rune);
+        string by = string (1, rune);
         automata->start->edges.push_back(new MemoryEdge(by, node));
         node->edges.push_back(new MemoryEdge("", automata->finish));
         automata->nodes.push_back(node);

@@ -104,8 +104,6 @@ BinaryTree* BinaryTree::toSSNF() {
         return new_t;
     }
     else if (type == backreferenceExpr) {
-        auto* new_t = new BinaryTree(backreferenceExpr);
-        new_t->child = child->toSSNF();
-        return new_t;
+        return this;
     }
 }

@@ -26,7 +26,10 @@ list<string> BinaryTree::linearize(int &start_idx) {
 
 list<string> BinaryTree::doFIRST() {
     list<string> first;
-    if (type == literal) {
+    if (type == epsilon) {}
+    else if (type == reference)
+        first.push_back(variable);
+    else if (type == literal) {
         first.push_back(name);
     }
     else if (type == alternationExpr) {
@@ -39,7 +42,7 @@ list<string> BinaryTree::doFIRST() {
             first.merge(right->doFIRST());
         }
     }
-    else if (type == kleeneStar) {
+    else if (type == kleeneStar || type == kleenePlus || type == backreferenceExpr) {
         first.merge(child->doFIRST());
     }
     return first;

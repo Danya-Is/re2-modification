@@ -201,7 +201,6 @@ bool Automata::match(const string& str) {
     set<Node*> visited_states;
     evaluateStates("", str_len - 1, states, visited_states);
 
-    cout << finish << endl;
     for (auto *state: states) {
         if (state == finish) {
             return true;

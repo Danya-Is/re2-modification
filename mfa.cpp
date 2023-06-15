@@ -1,5 +1,7 @@
 #include "automata.h"
 #include <string>
+#include <cstring>
+#include <algorithm>
 #include <fstream>
 #include <map>
 //#include <graphviz/gvc.h>
@@ -138,10 +140,14 @@ void MFA::evaluateState(MemoryState state, std::string str, int letter_index, se
                 evaluateState(new_state, str, letter_index, new_states, visited_states);
             }
             else if (letter_index != str.length() and letter_index == state.first) {
-                string by_letter = str.substr(letter_index, 1);
+                string by_letter;
+                if (is_reversed)
+                    by_letter = str.substr(str.length() - letter_index - 1, 1);
+                else
+                    by_letter = str.substr(letter_index, 1);
                 auto new_state = make_pair(state.first, make_pair(edge->to, copy_memory(state.second.second)));
 
-                // обычный переход по 1 символу, возможен  с проверкой, что выходной индекс состояние не больше
+                // обычный переход по 1 символу, возможен с проверкой, что выходной индекс состояние не больше
                 // текущего идекса в строке
                 if (edge->by == "." or edge->by == by_letter) {
                     doMemoryWriteActions(by_letter, edge, new_state);
@@ -152,7 +158,13 @@ void MFA::evaluateState(MemoryState state, std::string str, int letter_index, se
                     auto by_string = state.second.second[edge->by]->read();
                     int edge_len = by_string.length();
                     if (str.length() - letter_index >= edge_len) {
-                        auto sub_string = str.substr(letter_index, edge_len);
+                        string sub_string;
+                        if (is_reversed) {
+                            sub_string = str.substr(str.length() - letter_index - edge_len, edge_len);
+                            reverse(sub_string.begin(), sub_string.end());
+                        }
+                        else
+                            sub_string = str.substr(letter_index, edge_len);
                         if (by_string == sub_string) {
                             new_state.first += edge_len;
                             doMemoryWriteActions(by_string, edge, new_state);
@@ -188,9 +200,10 @@ bool MFA::match(string str) {
     states.insert(make_pair(0, make_pair(start, empty_memory)));
     int str_len = str.length();
     for (int i = 0; i < str_len; i++) {
-        string by = str.substr(i, 1);
         set<MemoryNode*> visited_states;
         evaluateStates(str, i, states, visited_states);
+        if (states.empty())
+            break;
     }
     set<MemoryNode*> visited_states;
     evaluateStates(str, str_len, states, visited_states);

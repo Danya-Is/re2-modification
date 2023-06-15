@@ -32,6 +32,8 @@ public:
     list<string> doLAST();
     set<pair<string, string>> doFOLLOW();
 
+    bool is_one_unambiguity();
+
     BinaryTree* toSSNF();
     BinaryTree* underKleene();
     BinaryTree* checkEpsChilds();

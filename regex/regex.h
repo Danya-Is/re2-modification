@@ -220,7 +220,7 @@ public:
 
     BinaryTree* to_binary_tree();
 
-    Automata* compile();
+    Automata * compile(bool &is_mfa);
 
     bool match(const string& input_str);
 };

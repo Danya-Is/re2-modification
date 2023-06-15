@@ -188,7 +188,6 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
 
 Regexp *Regexp::distribute_to_left(int alt_pos) {
     /// a(b|c) -> (ab|ac)
-    log << "distribute to left start" << endl;
     if (regexp_type == concatenationExpr) {
         size_t n = sub_regexps.size();
         if (alt_pos > 0) {
@@ -909,7 +908,7 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
 }
 
 Regexp *Regexp::bnf() {
-    log.open("/home/daria/CLionProjects/re2-modification/log.txt", std::ofstream::out | std::ofstream::trunc);
+    log.open("log.txt", std::ofstream::out | std::ofstream::trunc);
     log.clear();
 
     auto *new_r = _bnf(nullptr);

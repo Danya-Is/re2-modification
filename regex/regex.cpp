@@ -272,25 +272,44 @@ BinaryTree *Regexp::to_binary_tree() {
     return tr;
 }
 
-Automata* Regexp::compile() {
+Automata* Regexp::compile(bool &is_mfa) {
+    is_backref_correct();
     auto *bt = to_binary_tree();
-    bt = bt->toSSNF();
+//    bt = bt->toSSNF();
 
-    auto *MFA = bt->toMFA();
-    MFA->draw("mfa");
-
-    if (have_backreference) {
-        auto *MFA = bt->toMFA();
-        MFA->draw("mfa");
-        return MFA;
+    if (!maybe_initialized.empty() || !maybe_read.empty()) {
+        cout << "Используется память" << endl;
+        is_mfa = true;
+        if (!bt->is_one_unambiguity()) {
+            auto* bnf_regexp = bnf();
+            auto *reverse_bnf = bnf_regexp->reverse();
+            cout << "BNF: " << bnf_regexp->to_string() << endl;
+            cout << "Reverse: " << reverse_bnf->to_string() << endl;
+            auto *reverse_bt = reverse_bnf->to_binary_tree();
+            auto *MFA = reverse_bt->toMFA();
+            MFA->is_reversed = true;
+            MFA->draw("reverse_mfa");
+            return MFA;
+        }
+        else {
+            cout << "1-однозначность" << endl;
+            bt->toSSNF();
+            auto *MFA = bt->toMFA();
+            MFA->draw("mfa");
+            return MFA;
+        }
     }
     else {
-        auto *glushkov = bt->toGlushkov();
-        if (glushkov->isDeterministic()) {
+        is_mfa = false;
+        cout << "Без использования памяти" << endl;
+        if (bt->is_one_unambiguity()) {
+            cout << "1-однозначность" << endl;
+            bt->toSSNF();
+            auto *glushkov = bt->toGlushkov();
             return glushkov;
         }
         else {
-            auto *reverse_bt = bnf()->reverse()->to_binary_tree();
+            auto *reverse_bt = reverse()->to_binary_tree();
             reverse_bt = reverse_bt->toSSNF();
             auto *reverse_glushkov = reverse_bt->toGlushkov();
             reverse_glushkov->is_reversed = true;
