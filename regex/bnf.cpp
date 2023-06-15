@@ -571,8 +571,8 @@ Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator 
         // из за того что слайдинг был по последней инициализации, все они точно удовлетворяют lastinit условию
         if (!new_kleene->sub_regexp->rw_vars.empty()) {
             new_kleene = new_kleene->open_kleene({}, false);
-            new_kleene->is_slided = true;
         }
+        new_kleene->is_slided = true;
 
         if (log.is_open()) {
             log << "denesting + sliding" << endl;
