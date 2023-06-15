@@ -107,10 +107,28 @@ void MFA::doMemoryWriteActions(std::string letter, MemoryEdge* edge, MemoryState
 Memory copy_memory(Memory memory) {
     Memory new_memory;
     for (auto cell: memory) {
-        new_memory[cell.first] = new Variable(cell.second->is_open, cell.second->value);
+        new_memory[cell.first] = new Variable(cell.second->is_open, cell.second->value, cell.second->is_read);
     }
 
     return new_memory;
+}
+
+bool MFA::is_siffix_long_enough(MemoryState state, const string& str, int letter_index) {
+    if (is_reversed) {
+        int suffix_length = str.length() - letter_index;
+        int needed_length = 0;
+        for (const auto& cell: state.second.second) {
+            if (cell.second->is_open || !cell.second->is_read) {
+                if (cell.second->value.length() > needed_length)
+                    needed_length = cell.second->value.length();
+            }
+        }
+        if (needed_length > suffix_length)
+            return false;
+        else return true;
+    }
+    // иначе проверка неприменима, тк чтения не обязательны
+    else return true;
 }
 
 
@@ -119,7 +137,7 @@ void MFA::evaluateState(MemoryState state, std::string str, int letter_index, se
     if (state.second.first == finish and state.first == str.length()) {
         new_states.insert(state);
     }
-    else {
+    else if (is_siffix_long_enough(state, str, letter_index)){
         for (auto *edge: state.second.first->edges) {
             if (edge->by.empty() or edge->by == "ε") {
                 auto new_state = make_pair(state.first,
