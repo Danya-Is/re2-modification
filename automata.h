@@ -64,6 +64,8 @@ public:
 
     void changeFinalState(MemoryNode *new_final);
 
+    bool is_siffix_long_enough(MemoryState state, const string& str, int letter_index);
+
     bool match(string str);
 
     void

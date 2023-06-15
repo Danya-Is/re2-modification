@@ -2,12 +2,12 @@
 
 #include "regex.h"
 
-void Regexp::bind_init_to_read(map<string, Regexp *> init) {
+void Regexp::bind_init_to_read(map<string, Regexp *> &init) {
     if (regexp_type == epsilon || regexp_type == literal){}
     else if (regexp_type == reference) {
         if (init.find(variable) != init.end()){
             reference_to = init[variable];
-            init[variable]->is_read = true;
+            reference_to->is_read = true;
         }
 
     }
@@ -102,10 +102,12 @@ Regexp *Regexp::replace_read_write(set<Regexp *> &initialized_in_reverse) {
 }
 
 Regexp *Regexp::reverse() {
+    if (is_bad_bnf)
+        cout << "Regex is not reversable in this version";
     set<Regexp*> empty_set;
     auto *reversed = _reverse();
 
-    cout << reversed->to_string() << endl;
+//    cout << reversed->to_string() << endl;
 
     return reversed->replace_read_write(empty_set);
 }

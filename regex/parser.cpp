@@ -11,6 +11,9 @@ Regexp* Regexp::parse_regexp(string &s) {
 
     while (!s.empty()) {
         char c = s[0];
+        if (c == ' ') {
+            continue;
+        }
         if (c == '*' || c == '+') {
             regexp->do_kleene(c);
         } else if (c == '(') {
@@ -54,11 +57,7 @@ Regexp* Regexp::parse_regexp(string &s) {
             regexp->sub_regexps.push_back(new_re);
             regexp->have_backreference = true;
         }
-        else if (c == 'e') {
-            auto* re = new Regexp(epsilon);
-            regexp->sub_regexps.push_back(re);
-        }
-        else if ((c >= 'a' and c <= 'z' and c != 'e') or c == '.') {
+        else if ((c >= 'a' and c <= 'z') or c == '.') {
             auto* re = new Regexp(literal);
             re->rune = c;
             regexp->sub_regexps.push_back(re);

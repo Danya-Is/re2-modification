@@ -51,3 +51,10 @@ std::string substr(std::string originalString, int maxLength)
 
     return resultString;
 }
+
+bool BinaryTree::is_one_unambiguity() {
+    auto first = doFIRST();
+    set<string> unique_first(begin(first), end(first));
+
+    return unique_first.size() == first.size();
+}
