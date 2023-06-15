@@ -57,13 +57,13 @@ with open(f'../test/example_{example_number}/python_results.txt', 'r') as res_fi
     ys2 = [float(y) for y in ys2]
     ys1 = [float(y) for y in ys1]
 
-    plt.figure(dpi=300)
+    plt.figure(dpi=400)
 
     if len(ys3) > 0:
-        fig, axs = plt.subplots(1, 3, figsize=(40,20))
+        fig, axs = plt.subplots(1, 3, figsize=(30,10))
     else:
-        fig, axs = plt.subplots(1, 2, figsize=(40,20))
-    fig.suptitle(mfa_r + ", " + r, fontsize=25)
+        fig, axs = plt.subplots(1, 2, figsize=(30,10))
+    fig.suptitle(mfa_r + ", " + r, fontsize=20)
     axs = axs.flatten()
 
 
@@ -83,4 +83,4 @@ with open(f'../test/example_{example_number}/python_results.txt', 'r') as res_fi
         axs[1].set(xlabel='Length, chars', ylabel='Time, seconds')
         axs[1].set_title("python")
 
-    plt.show()
+    plt.savefig(f'../test/example_{example_number}/result.png')

@@ -91,10 +91,10 @@ public:
     bool is_one_unamb = false;
 
     /// регулярка не обращается в текущей версии алгоритма
-    bool is_bad_bnf;
+    bool is_bad_bnf = false;
 
     /// итерация над rw, которая уже была раскрыта, и соответственно должна далее игнорироваться, чтобы не зациклиться
-    bool is_slided;
+    bool is_slided = false;
 
     /// точно инициализированные
     map<string, list<Regexp*>> initialized;

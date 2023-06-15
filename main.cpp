@@ -32,7 +32,7 @@ void run_example(string number) {
             bool match = mfa->match(input_str);
             clock_t end = clock();
             double seconds = (double)(end - start) / CLOCKS_PER_SEC;
-            cout << match << endl;
+//            cout << match << endl;
 
             result_file << seconds << endl;
 
@@ -41,7 +41,7 @@ void run_example(string number) {
                 match = reverse_mfa->match(input_str);
                 end = clock();
                 seconds = (double)(end - start) / CLOCKS_PER_SEC;
-                cout << match << endl;
+//                cout << match << endl;
 
                 reverse_result_file << seconds << endl;
             }

@@ -288,6 +288,7 @@ Automata* Regexp::compile(bool &is_mfa, bool use_reverse) {
             auto *reverse_bnf = bnf_regexp->reverse();
             cout << "Reverse: " << reverse_bnf->to_string() << endl;
             auto *reverse_bt = reverse_bnf->to_binary_tree();
+            reverse_bt->toSSNF();
 
             auto *MFA = reverse_bt->toMFA();
             MFA->is_reversed = true;
