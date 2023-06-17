@@ -1,0 +1,3 @@
+init without read {(a|bb)*}:1aaba((bb*aa)*|(bb*aa)*&1(bb*aa)*(&1(bb*aa)*)*)
+distribute to left
+prefix -> ({(a|bb)*}:1aaba(bb*aa)*|{(a|bb)*}:1aaba(bb*aa)*&1(bb*aa)*(&1(bb*aa)*)*)
