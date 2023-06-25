@@ -119,8 +119,9 @@ bool MFA::is_siffix_long_enough(MemoryState state, const string& str, int letter
         int needed_length = 0;
         for (const auto& cell: state.second.second) {
             if (cell.second->is_open || !cell.second->is_read) {
-                if (cell.second->value.length() > needed_length)
-                    needed_length = cell.second->value.length();
+//                if (cell.second->value.length() > needed_length)
+//                    needed_length = cell.second->value.length();
+                needed_length += cell.second->value.length();
             }
         }
         if (needed_length > suffix_length)

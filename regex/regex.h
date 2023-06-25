@@ -182,8 +182,6 @@ public:
     set<string> alt_read_without_init();
     /// количество инициализаций переменных в вариантах альтернативы (под Клини)
     map<string, int> alt_init();
-    /// есть ли в альтернативе варианты с неиспользованной инициализацией
-    set<string> alt_init_without_read();
 
     /// удаление лишних инициализий после преобразований
     Regexp *clear_initializations_and_read(set<string> vars, set<string> read_vars = {});
@@ -198,6 +196,7 @@ public:
     Regexp* _open_alt_under_kleene(const string& var);
 
     Regexp* denesting(Regexp* a_alt, Regexp* b_alt);
+    Regexp* rw_with_bad_init_read(set<string> vars);
     Regexp* rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index);
     Regexp* rw_in_alt_under_kleene();
     Regexp* handle_rw_under_kleene(Regexp* parent, list<Regexp*>::iterator prefix_index);
@@ -223,8 +222,6 @@ public:
     BinaryTree* to_binary_tree();
 
     Automata * compile(bool &is_mfa, bool use_reverse);
-
-    bool match(const string& input_str);
 };
 
 void run_examples();

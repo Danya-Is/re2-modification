@@ -14,7 +14,7 @@ class Edge {
 public:
     string by;
     Node* to;
-    bool drawn;
+    bool drawn = false;
 
     Edge() {
         this->drawn = false;
@@ -27,12 +27,8 @@ public:
 };
 
 enum MemoryAction {
-
     open,
-
-    close,
-
-    stay
+    close
 };
 
 class MemoryEdge: public Edge {

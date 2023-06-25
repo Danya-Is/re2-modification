@@ -24,7 +24,7 @@ public:
     }
 };
 
-class MemoryNode {
+class MemoryNode : Node{
 public:
     list<MemoryEdge*> edges;
     string name;
