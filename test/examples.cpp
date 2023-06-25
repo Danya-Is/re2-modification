@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <cstring>
 
 #include "../regex/regex.h"
 

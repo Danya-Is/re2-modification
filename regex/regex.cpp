@@ -263,7 +263,7 @@ BinaryTree *Regexp::to_binary_tree() {
     return tr;
 }
 
-Automata* Regexp::compile(bool &is_mfa, bool use_reverse) {
+Automata * Regexp::compile(bool &is_mfa, bool use_reverse, bool use_bnf, bool use_ssnf) {
     is_backref_correct();
     auto *bt = to_binary_tree();
 //    bt = bt->toSSNF();
@@ -278,7 +278,8 @@ Automata* Regexp::compile(bool &is_mfa, bool use_reverse) {
             auto *reverse_bnf = bnf_regexp->reverse();
             cout << "Reverse: " << reverse_bnf->to_string() << endl;
             auto *reverse_bt = reverse_bnf->to_binary_tree();
-            reverse_bt->toSSNF();
+            if (use_ssnf)
+                reverse_bt->toSSNF();
 
             auto *MFA = reverse_bt->toMFA();
             MFA->is_reversed = true;
@@ -290,7 +291,12 @@ Automata* Regexp::compile(bool &is_mfa, bool use_reverse) {
                 cout << "1-однозначность" << endl;
                 this->is_one_unamb = true;
             }
-            bt->toSSNF();
+            if (use_bnf) {
+                auto* bnf_regex = bnf();
+                bt = bnf_regex->to_binary_tree();
+            }
+            if (use_ssnf)
+                bt->toSSNF();
             auto *MFA = bt->toMFA();
             MFA->draw("mfa");
             return MFA;
@@ -301,13 +307,15 @@ Automata* Regexp::compile(bool &is_mfa, bool use_reverse) {
         cout << "Без использования памяти" << endl;
         if (bt->is_one_unambiguity()) {
             cout << "1-однозначность" << endl;
-            bt->toSSNF();
+            if (use_ssnf)
+                bt->toSSNF();
             auto *glushkov = bt->toGlushkov();
             return glushkov;
         }
         else {
             auto *reverse_bt = reverse()->to_binary_tree();
-            reverse_bt = reverse_bt->toSSNF();
+            if (use_ssnf)
+                reverse_bt = reverse_bt->toSSNF();
             auto *reverse_glushkov = reverse_bt->toGlushkov();
             reverse_glushkov->is_reversed = true;
             reverse_glushkov->draw("reverse");
@@ -315,6 +323,8 @@ Automata* Regexp::compile(bool &is_mfa, bool use_reverse) {
                 return reverse_glushkov;
             }
             else {
+                if (use_ssnf)
+                    bt->toSSNF();
                 auto *thompson = bt->toThomson();
                 return thompson;
             }

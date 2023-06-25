@@ -7,12 +7,12 @@
 
 using namespace std;
 
-void match(string regexp_str) {
+void match(string regexp_str, bool reverse, bool bnf, bool ssnf) {
 //    regexp_str = ".*" + regexp_str + ".*";
     Regexp* regexp = Regexp::parse_regexp(regexp_str);
 
     bool is_mfa = false;
-    auto *automata = regexp->compile(is_mfa, false);
+    auto *automata = regexp->compile(is_mfa, reverse, bnf, ssnf);
     MFA* new_automata = nullptr;
     if (is_mfa) {
         new_automata = static_cast<MFA*>(automata);

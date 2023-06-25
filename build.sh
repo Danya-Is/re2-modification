@@ -1,5 +1,5 @@
 #!/bin/bash
-cmake
+cmake .
 make
 # для отрисовки графиков
 pip install matplotlib
