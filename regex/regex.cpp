@@ -36,16 +36,6 @@ bool Regexp::is_equal(Regexp *other) {
     }
 }
 
-set<string> Regexp::alt_init_without_read() {
-    set<string> unread;
-    for (auto *sub_r: sub_regexps) {
-        if (!sub_r->unread_init.empty()) {
-            union_sets(unread, sub_r->unread_init);
-        }
-    }
-    return unread;
-}
-
 set<string> Regexp::alt_read_without_init() {
     set<string> uninit;
     for (auto *sub_r: sub_regexps) {

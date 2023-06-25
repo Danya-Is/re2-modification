@@ -142,12 +142,10 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
 
             auto* alt = *it;
             it++;
-
             if (it == sub_regexps.end())
                 return this;
 
             auto* tail = new Regexp(concatenationExpr);
-            set<string> uninited_read_t;
             for (int i = alt_pos + 1; i < n; i++) {
                 tail->push_sub_regexp((*it));
                 it++;
@@ -157,7 +155,6 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
             for (auto *sub_r: alt->sub_regexps) {
                 auto *new_sub_r = new Regexp(concatenationExpr);
                 new_sub_r->push_sub_regexp(sub_r);
-
                 for (auto *r: tail->sub_regexps){
                     auto *copy_r = copy(r);
                     new_sub_r->push_sub_regexp(copy_r);
@@ -182,13 +179,9 @@ Regexp* Regexp::distribute_to_right(int alt_pos) {
 
             return new_regexp;
         }
-        else {
-            return this;
-        }
+        else return this;
     }
-    else {
-        ::printf("Expected concatenation in distribute()");
-    }
+    else return this;
 }
 
 Regexp *Regexp::distribute_to_left(int alt_pos) {
@@ -446,7 +439,7 @@ Regexp *Regexp::_open_alt_under_kleene(const string& var) {
     a_alt = a_alt->simplify_conc_alt();
     b_alt = b_alt->simplify_conc_alt();
 
-    // (rw | rw | rw | f | f)* по одной переменной
+    // (rw | rw | rw | f | f)* case
     if (b_alt->regexp_type == epsilon)
         return rw_in_alt_under_kleene();
 
@@ -479,6 +472,89 @@ Regexp *Regexp::open_alt_under_kleene(bool min_init_order) {
     }
 }
 
+Regexp *Regexp::rw_with_bad_init_read(set<string> not_amb) {
+    /// denesting + sliding (ab)* = (a(ba)*b | eps), where a contains read and b contains init
+    /// so regex looks like (rwrw...rw)*, and we need the last one w
+    set<string> last_init(not_amb.begin(), not_amb.end());
+
+    auto *bnf_r = new Regexp();
+    auto *new_kleene = new Regexp(kleeneStar);
+
+    auto *a_conc = new Regexp(concatenationExpr);
+    auto *b_conc = new Regexp(concatenationExpr);
+
+    auto it = sub_regexp->sub_regexps.end();
+    it--;
+    size_t init_pos = sub_regexp->sub_regexps.size() - 1;
+    list<Regexp*>::iterator init_it;
+    while (it != sub_regexp->sub_regexps.end()) {
+        b_conc->push_sub_regexp(*it, true);
+        last_init.clear();
+        last_init.insert(not_amb.begin(), not_amb.end());
+        intersect_sets(last_init, (*it)->maybe_initialized);
+        it--;
+        // нашли последнюю инициализацию, все что до нее пойдет в a_conc
+        if (!last_init.empty()) {
+            init_it = it;
+            init_it++;
+            break;
+        }
+        init_pos--;
+    }
+
+    while (it != sub_regexp->sub_regexps.end()) {
+        a_conc->push_sub_regexp(*it, true);
+        it--;
+    }
+
+    a_conc = a_conc->simplify_conc_alt();
+    b_conc = b_conc->simplify_conc_alt();
+
+    auto *new_r = new Regexp(alternationExpr);
+    new_r->sub_regexps.push_back(new Regexp(epsilon));
+
+    auto *new_concat = new Regexp(concatenationExpr);
+
+    auto *sub_concat = new Regexp(concatenationExpr);
+    auto *copy_b = copy(b_conc);
+    auto *copy_a = copy(a_conc);
+    sub_concat->push_sub_regexp(copy_b);
+    sub_concat->push_sub_regexp(copy_a);
+    new_kleene->sub_regexp = sub_concat;
+    new_kleene->star_kleene_vars(sub_concat);
+
+    new_concat->push_sub_regexp(a_conc);
+    new_concat->push_sub_regexp(new_kleene);
+    new_concat->push_sub_regexp(b_conc);
+
+    if (regexp_type == kleeneStar) {
+        new_r->push_sub_regexp(new_concat);
+        bnf_r = new_r;
+    }
+    else {
+        bnf_r = new_concat;
+    }
+
+    // произошел слайдинг
+    // теперь нужно раскрыть итерацию, если внутри нее еще остались rw
+    // из за того что слайдинг был по последней инициализации, все они точно удовлетворяют lastinit условию
+    if (!new_kleene->sub_regexp->rw_vars.empty()) {
+        new_kleene = new_kleene->open_kleene({}, false);
+        new_kleene->is_slided = true;
+    }
+    else {
+        new_kleene = new_kleene->_bnf(nullptr, true);
+        new_kleene->is_slided = true;
+    }
+
+    if (log.is_open()) {
+        log << "denesting + sliding" << endl;
+        log << to_string() << " -> " << bnf_r->to_string() << endl;
+    }
+
+    return bnf_r;
+}
+
 Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator current_index) {
     /// (r_1w_1r_2w_2)* -> sliding (r_1w_1r_2(w_2r_1w_1r_2)*w_2 | eps)
     /// -> open kleene (r_1w_1r_2 ((w_2r_1w_1r_2)*w_2r_1w_1r_2 | eps) w_2 | eps)
@@ -509,84 +585,8 @@ Regexp *Regexp::rw_in_conc_under_kleene(Regexp* parent, list<Regexp*>::iterator 
     }
 
     auto *bnf_r = new Regexp();
-    // для новой итерации, возможно ее потом еще надо будет раскрывать
-    auto *new_kleene = new Regexp(kleeneStar);
-    /// sliding (ab)* = (a(ba)*b | eps), where a contains read and b contains init
     if (!not_amb.empty()) {
-        // so regex looks like (rwrw...rw)*, and we need the last one w
-        set<string> last_init(not_amb.begin(), not_amb.end());
-
-        auto *a_conc = new Regexp(concatenationExpr);
-        auto *b_conc = new Regexp(concatenationExpr);
-
-        auto it = sub_regexp->sub_regexps.end();
-        it--;
-        size_t init_pos = sub_regexp->sub_regexps.size() - 1;
-        list<Regexp*>::iterator init_it;
-        while (it != sub_regexp->sub_regexps.end()) {
-            b_conc->push_sub_regexp(*it, true);
-            last_init.clear();
-            last_init.insert(not_amb.begin(), not_amb.end());
-            intersect_sets(last_init, (*it)->maybe_initialized);
-            it--;
-            // нашли последнюю инициализацию, все что до нее пойдет в a_conc
-            if (!last_init.empty()) {
-                init_it = it;
-                init_it++;
-                break;
-            }
-            init_pos--;
-        }
-
-        while (it != sub_regexp->sub_regexps.end()) {
-            a_conc->push_sub_regexp(*it, true);
-            it--;
-        }
-
-        a_conc = a_conc->simplify_conc_alt();
-        b_conc = b_conc->simplify_conc_alt();
-
-        auto *new_r = new Regexp(alternationExpr);
-        new_r->sub_regexps.push_back(new Regexp(epsilon));
-
-        auto *new_concat = new Regexp(concatenationExpr);
-
-        auto *sub_concat = new Regexp(concatenationExpr);
-        auto *copy_b = copy(b_conc);
-        auto *copy_a = copy(a_conc);
-        sub_concat->push_sub_regexp(copy_b);
-        sub_concat->push_sub_regexp(copy_a);
-        new_kleene->sub_regexp = sub_concat;
-        new_kleene->star_kleene_vars(sub_concat);
-
-        new_concat->push_sub_regexp(a_conc);
-        new_concat->push_sub_regexp(new_kleene);
-        new_concat->push_sub_regexp(b_conc);
-
-        if (regexp_type == kleeneStar) {
-            new_r->push_sub_regexp(new_concat);
-            bnf_r = new_r;
-        }
-        else {
-            bnf_r = new_concat;
-        }
-
-        // произошел слайдинг
-        // теперь нужно раскрыть итерацию, если внутри нее еще остались rw
-        // из за того что слайдинг был по последней инициализации, все они точно удовлетворяют lastinit условию
-        if (!new_kleene->sub_regexp->rw_vars.empty()) {
-            new_kleene = new_kleene->open_kleene({}, false);
-            new_kleene->is_slided = true;
-        }
-        else {
-            new_kleene = new_kleene->_bnf(nullptr, true);
-            new_kleene->is_slided = true;
-        }
-
-        if (log.is_open()) {
-            log << "denesting + sliding" << endl;
-            log << to_string() << " -> " << bnf_r->to_string() << endl;
-        }
+        return rw_with_bad_init_read(not_amb);
     }
     else if (!sub_regexp->rw_vars.empty()){
         bnf_r = open_kleene({}, false);
@@ -778,10 +778,7 @@ Regexp *Regexp::conc_handle_read_without_init() {
                 }
 
                 // альтернатива, которую надо раскрыть
-                auto *distributed = bnf_regexp->distribute_to_right(j);
-                bnf_regexp->regexp_type = distributed->regexp_type;
-                bnf_regexp->sub_regexps = distributed->sub_regexps;
-                bnf_regexp->change_vars(distributed);
+                bnf_regexp = bnf_regexp->distribute_to_right(j);
 
                 if (bnf_regexp->regexp_type == alternationExpr)
                     break;
@@ -824,14 +821,8 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
         size_t n = sub_regexps.size();
         auto *bnf_regexp = new Regexp(regexp_type);
         for (auto it = sub_regexps.begin(); it != sub_regexps.end(); it++) {
-            if (regexp_type == alternationExpr){
-                auto *new_sub_r = (*it)->_bnf(this, false, it);
-                bnf_regexp->push_sub_regexp(new_sub_r);
-            }
-            else{
-                auto *new_sub_r = (*it)->_bnf(this, false, it);
-                bnf_regexp->push_sub_regexp(new_sub_r);
-            }
+            auto *new_sub_r = (*it)->_bnf(this, false, it);
+            bnf_regexp->push_sub_regexp(new_sub_r);
         }
 
         if (bnf_regexp->is_bad_bnf)
@@ -840,7 +831,6 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
         if (bnf_regexp->regexp_type == concatenationExpr) {
 
             // check unread init under kleene or under alternation ({}:1(&1|a))*
-            n = bnf_regexp->sub_regexps.size();
             if (!bnf_regexp->unread_init.empty()) {
                 bnf_regexp = bnf_regexp->conc_handle_init_without_read();
             }
@@ -849,30 +839,23 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
                 bnf_regexp = bnf_regexp->conc_handle_read_without_init();
             }
 
-            if (bnf_regexp->regexp_type == concatenationExpr) {
-                //check init in alternations
-                int i = 0;
-                for (auto it = bnf_regexp->sub_regexps.begin(); it != bnf_regexp->sub_regexps.end(); it++) {
-                    auto sub_r = *it;
-                    if (sub_r->regexp_type == backreferenceExpr && sub_r->sub_regexp->regexp_type == alternationExpr &&
-                        !sub_r->sub_regexp->alt_init_without_read().empty()) {
-                        (*it) = sub_r->take_out_alt_under_backref();
-                    }
-                    sub_r = *it;
-                    if (sub_r->regexp_type == alternationExpr && !sub_r->alt_init_without_read().empty()) {
-                        auto *distributed = bnf_regexp->distribute_to_right(i);
-                        bnf_regexp->regexp_type = distributed->regexp_type;
-                        bnf_regexp->sub_regexps = distributed->sub_regexps;
-                        break;
-                    }
-                    i++;
-                }
-            }
-
-//            if (bnf_regexp->regexp_type == alternationExpr)
-//                bnf_regexp = bnf_regexp->_bnf(false, true);
-//            else
-//                bnf_regexp = bnf_regexp->_bnf();
+//            if (bnf_regexp->regexp_type == concatenationExpr) {
+//                //check init in alternations
+//                int i = 0;
+//                for (auto it = bnf_regexp->sub_regexps.begin(); it != bnf_regexp->sub_regexps.end(); it++) {
+//                    auto sub_r = *it;
+//                    if (sub_r->regexp_type == backreferenceExpr && sub_r->sub_regexp->regexp_type == alternationExpr &&
+//                        !sub_r->sub_regexp->alt_init_without_read().empty()) {
+//                        (*it) = sub_r->take_out_alt_under_backref();
+//                    }
+//                    sub_r = *it;
+//                    if (sub_r->regexp_type == alternationExpr && !sub_r->alt_init_without_read().empty()) {
+//                        bnf_regexp = bnf_regexp->distribute_to_right(i);
+//                        break;
+//                    }
+//                    i++;
+//                }
+//            }
         }
 
         return bnf_regexp;
