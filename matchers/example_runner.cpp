@@ -12,7 +12,7 @@
 using namespace std;
 
 
-std::string repeat(int n, vector<string> pump_v) {
+std::string pumped_string(int n, vector<string> pump_v) {
     int pump_count = pump_v.size() / 2 + 1;
     int del_count = pump_v.size() - pump_count;
 
@@ -120,7 +120,7 @@ void run_configuration_examples(const string& number) {
 
         while ((!reverse_timeouted || !bnf_timeouted || !mfa_timeouted) && len < len_limit) {
 
-            input_str = prefix.append(repeat(pump_size, pump)).append(suffix);
+            input_str = prefix.append(pumped_string(pump_size, pump)).append(suffix);
             len = input_str.length();
             pump_size += pump_size;
 

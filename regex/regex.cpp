@@ -274,17 +274,27 @@ Automata * Regexp::compile(bool &is_mfa, bool use_reverse, bool use_bnf, bool us
         bool is_one_unam = bt->is_one_unambiguity();
         if (!is_one_unam && use_reverse) {
             auto* bnf_regexp = bnf();
-            cout << "BNF: " << bnf_regexp->to_string() << endl;
-            auto *reverse_bnf = bnf_regexp->reverse();
-            cout << "Reverse: " << reverse_bnf->to_string() << endl;
-            auto *reverse_bt = reverse_bnf->to_binary_tree();
-            if (use_ssnf)
-                reverse_bt->toSSNF();
 
-            auto *MFA = reverse_bt->toMFA();
-            MFA->is_reversed = true;
-            MFA->draw("reverse_mfa");
-            return MFA;
+            if (!bnf_regexp->is_bad_bnf) {
+                cout << "BNF: " << bnf_regexp->to_string() << endl;
+                auto *reverse_bnf = bnf_regexp->reverse();
+                cout << "Reverse: " << reverse_bnf->to_string() << endl;
+                auto *reverse_bt = reverse_bnf->to_binary_tree();
+                if (use_ssnf)
+                    reverse_bt->toSSNF();
+                auto *MFA = reverse_bt->toMFA();
+                MFA->is_reversed = true;
+                MFA->draw("reverse_mfa");
+                return MFA;
+            }
+            else {
+                if (use_ssnf)
+                    bt->toSSNF();
+                auto *MFA = bt->toMFA();
+                MFA->draw("mfa");
+                return MFA;
+            }
+
         }
         else {
             if (is_one_unam){

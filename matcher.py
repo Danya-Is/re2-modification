@@ -12,7 +12,6 @@ def timeout_handler(signum, frame):
 def match_timer(r, input_str):
     regexp = re.compile("^" + r + "$")
     signal.signal(signal.SIGALRM, timeout_handler)
-    # signal.setitimer(signal.SIGALRM, 0.5, 0.5)
     signal.alarm(1)
 
     try:
@@ -91,25 +90,25 @@ with open(f'test/example_{example_number}/python_results.txt', 'r') as res_file1
     points4[0] = [int(y) for y in points4[0]]
     points4[1] = [float(y) for y in points4[1]]
 
-    fig, axs = plt.subplots(1, 4, figsize=(40,20))
+    fig, axs = plt.subplots(2, 2, figsize=(18, 12))
     fig.suptitle(mfa_r + ", " + r, fontsize=20)
     # axs = axs.flatten()
 
-    axs[0].plot(points2[0], points2[1])
-    axs[0].set(xlabel='Length, chars', ylabel='Time, seconds')
-    axs[0].set_title("diploma")
+    axs[0][0].plot(points2[0], points2[1])
+    axs[0][0].set(xlabel='Length, chars', ylabel='Time, seconds')
+    axs[0][0].set_title("diploma")
 
-    axs[1].plot(points3[0], points3[1])
-    axs[1].set(xlabel='Length, chars', ylabel='Time, seconds')
-    axs[1].set_title("diploma bnf")
+    axs[0][1].plot(points3[0], points3[1])
+    axs[0][1].set(xlabel='Length, chars', ylabel='Time, seconds')
+    axs[0][1].set_title("diploma bnf")
 
-    axs[2].plot(points4[0], points4[1])
-    axs[2].set(xlabel='Length, chars', ylabel='Time, seconds')
-    axs[2].set_title("diploma reverse")
+    axs[1][0].plot(points4[0], points4[1])
+    axs[1][0].set(xlabel='Length, chars', ylabel='Time, seconds')
+    axs[1][0].set_title("diploma reverse")
 
-    axs[3].plot(xs[:len(ys1)], ys1)
-    axs[3].set(xlabel='Length, chars', ylabel='Time, seconds')
-    axs[3].set_title("python")
+    axs[1][1].plot(xs[:len(ys1)], ys1)
+    axs[1][1].set(xlabel='Length, chars', ylabel='Time, seconds')
+    axs[1][1].set_title("python")
 
     plt.savefig(f'test/examples/image_{example_number}.png')
-    plt.show()
+    # plt.show()

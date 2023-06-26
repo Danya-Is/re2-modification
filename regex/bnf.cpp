@@ -904,6 +904,12 @@ Regexp *Regexp::bnf(bool is_log) {
         log.open("log.txt", std::ofstream::out | std::ofstream::trunc);
     }
 
+    if (!is_acreg()){
+        cout << "Регулярное выражение не удовлетворяет условию ацикличности и не может быть нормализовано" << endl;
+        is_bad_bnf = true;
+        return this;
+    }
+
     auto *new_r = _bnf(nullptr);
 
     if (new_r->is_bad_bnf)

@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
         }
     }
     else if (argc > 1 && ::strcmp(argv[1],"-test-bnf") == 0) {
-            run_examples();
+        run_bnf_test();
     }
     else {
         string regexp_str;
