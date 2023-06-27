@@ -1,3 +1,2 @@
-abbaa
-baac
-abbaaaaba
+bbaa,aaba,bbaa
+c

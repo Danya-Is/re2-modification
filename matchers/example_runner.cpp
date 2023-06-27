@@ -106,9 +106,9 @@ void run_configuration_examples(const string& number) {
         Regexp* regexp = Regexp::parse_regexp(regexp_str);
         regexp->is_backref_correct();
         bool is_mfa = true;
-        MFA* mfa = static_cast<MFA*>(regexp->compile(is_mfa, false, false, true));
-        MFA* bnf_mfa = static_cast<MFA*>(regexp->compile(is_mfa, false, true, true));
-        MFA* reverse_mfa = static_cast<MFA*>(regexp->compile(is_mfa, true, true, true));
+        MFA* mfa = static_cast<MFA*>(regexp->compile(is_mfa, false, false, true, false));
+        MFA* bnf_mfa = static_cast<MFA*>(regexp->compile(is_mfa, false, true, true, false));
+        MFA* reverse_mfa = static_cast<MFA*>(regexp->compile(is_mfa, true, true, true, false));
 
         bool mfa_timeouted = false;
         bool bnf_timeouted = false;
