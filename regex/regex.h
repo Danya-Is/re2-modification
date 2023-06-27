@@ -217,16 +217,20 @@ public:
     Regexp* _reverse();
     Regexp* reverse();
 
+    bool is_acreg();
+
     void bind_init_to_read(map<string, Regexp *>& init);
 
     BinaryTree* to_binary_tree();
 
-    Automata * compile(bool &is_mfa, bool use_reverse);
+    Automata *compile(bool &is_mfa, bool use_reverse, bool use_bnf, bool use_ssnf);
 };
 
-void run_examples();
+void run_bnf_test();
+void run_example(const string& number);
+void run_configuration_examples(const string& number);
 
-void match(string regexp_str);
+void match(string regexp_str, bool reverse, bool bnf, bool ssnf);
 
 void match_gt(string regexp_str);
 

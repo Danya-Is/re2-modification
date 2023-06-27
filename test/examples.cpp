@@ -1,6 +1,5 @@
 #include <fstream>
 #include <iostream>
-#include <cstring>
 
 #include "../regex/regex.h"
 
@@ -19,7 +18,7 @@ void split(vector<string>& strings, string str, char separator) {
     }
 }
 
-void run_examples() {
+void run_bnf_test() {
     ifstream file("/home/daria/CLionProjects/re2-modification/test/bnf_examples.txt");
 
     if (file.is_open()) {

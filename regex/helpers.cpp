@@ -1,6 +1,25 @@
 #include "regex.h"
 
 
+bool Regexp::is_acreg() {
+    if (regexp_type == epsilon || regexp_type == literal || regexp_type == reference)
+        return true;
+    else if (regexp_type == alternationExpr || regexp_type == concatenationExpr) {
+        for (auto *sub_r: sub_regexps){
+            if (!sub_r->is_acreg())
+                return false;
+        }
+        return true;
+    }
+    else if (regexp_type == kleeneStar || regexp_type == kleenePlus) {
+        return sub_regexp->is_acreg();
+    }
+    else if (regexp_type == backreferenceExpr) {
+        auto f = maybe_read.find(variable) == maybe_read.end();
+        return (sub_regexp->is_acreg() && maybe_read.find(variable) == maybe_read.end());
+    }
+}
+
 map<string, list<string>> Regexp::get_inner_reads() {
     map<string, list<string>> inner_reads;
     if (regexp_type == kleenePlus || regexp_type == backreferenceExpr) {

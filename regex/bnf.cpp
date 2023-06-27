@@ -32,9 +32,8 @@ Regexp *Regexp::take_out_alt_under_backref() {
             log << to_string() << "->" << new_r->to_string() << endl;
         return new_r;
     }
-    else {
+    else
         return this;
-    }
 }
 
 Regexp *Regexp::clear_initializations_and_read(set<string> init_vars, set<string> read_vars) {
@@ -287,12 +286,10 @@ Regexp *Regexp::open_kleene(set<string> vars, bool need_for_cleen) {
         }
         return new_r;
     }
-    else if (regexp_type == kleenePlus) {
+    else if (regexp_type == kleenePlus)
         return open_kleene_plus(vars);
-    }
-    else {
-        ::printf("Open kleene: Expected kleene");
-    }
+    else
+        cout << "Open kleene: Expected kleene" << endl;
 }
 
 Regexp *Regexp::open_kleene_with_read(set<string> vars, Regexp* parent, list<Regexp*>::iterator prefix_index) {
@@ -423,7 +420,6 @@ Regexp *Regexp::denesting(Regexp *a_alt, Regexp *b_alt) {
 
 Regexp *Regexp::_open_alt_under_kleene(const string& var) {
     /// (a|b)* = a*(ba*)*
-    /// b writes and a reads or do nothing
     auto *a_alt = new Regexp(alternationExpr);
     auto *b_alt = new Regexp(alternationExpr);
 
@@ -462,14 +458,10 @@ Regexp *Regexp::open_alt_under_kleene(bool min_init_order) {
             auto *new_r = _open_alt_under_kleene(vars.front());
             return new_r;
         }
-        else {
-            return this;
-        }
+        else return this;
 
     }
-    else {
-        ::printf("Open alt under kleene: Expected child alternation expression");
-    }
+    else return this;
 }
 
 Regexp *Regexp::rw_with_bad_init_read(set<string> not_amb) {
@@ -902,6 +894,12 @@ Regexp *Regexp::_bnf(Regexp* parent, bool under_kleene, list<Regexp*>::iterator 
 Regexp *Regexp::bnf(bool is_log) {
     if (is_log) {
         log.open("log.txt", std::ofstream::out | std::ofstream::trunc);
+    }
+
+    if (!is_acreg()){
+        cout << "Регулярное выражение не удовлетворяет условию ацикличности и не может быть нормализовано" << endl;
+        is_bad_bnf = true;
+        return this;
     }
 
     auto *new_r = _bnf(nullptr);

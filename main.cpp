@@ -1,81 +1,63 @@
 #include <iostream>
-#include <fstream>
 #include "regex/regex.h"
 #include "bt/binary_tree.h"
 #include "automata.h"
 #include <cstring>
-#include <ctime>
-#include <cstdlib>
 
 using namespace std;
 
-void run_example(string number) {
-    fstream regex_file("test/example_" + number + "/regexp.txt");
-    fstream input_string_file("test/example_" + number + "/input_strings.txt");
-    fstream result_file("test/example_" + number + "/diploma_results.txt", std::ofstream::out | std::ofstream::trunc);
-    fstream reverse_result_file("test/example_" + number + "/diploma_reverse_results.txt", std::ofstream::out | std::ofstream::trunc);
-    string regexp_str;
-    string input_str;
-    if (regex_file.is_open() && input_string_file.is_open() && regex_file.is_open()){
-        getline(regex_file, regexp_str);
-        cout << regexp_str << endl;
-        Regexp* regexp = Regexp::parse_regexp(regexp_str);
-        regexp->is_backref_correct();
-        bool is_mfa = true;
-        MFA* mfa = static_cast<MFA*>(regexp->compile(is_mfa, false));
-        MFA* reverse_mfa = nullptr;
-        if (!regexp->is_one_unamb)
-            reverse_mfa = static_cast<MFA*>(regexp->compile(is_mfa, true));
-
-        while (getline(input_string_file, input_str)) {
-            clock_t start = clock();
-            bool match = mfa->match(input_str);
-            clock_t end = clock();
-            double seconds = (double)(end - start) / CLOCKS_PER_SEC;
-//            cout << match << endl;
-
-            result_file << seconds << endl;
-
-            if (reverse_mfa) {
-                start = clock();
-                match = reverse_mfa->match(input_str);
-                end = clock();
-                seconds = (double)(end - start) / CLOCKS_PER_SEC;
-//                cout << match << endl;
-
-                reverse_result_file << seconds << endl;
-            }
-        }
-    }
-    regex_file.close();
-    input_string_file.close();
-    result_file.close();
-    reverse_result_file.close();
-
-//    string cmd = "python3.10 python_re/matcher.py " + number;
-//    ::system(cmd.c_str());
-}
-
 int main(int argc, char *argv[]) {
     if (argc > 1 && ::strcmp(argv[1],"-match") == 0) {
-        if (argc > 2){
-            run_example(argv[2]);
+        if (argc > 2 && argv[2][0] != '-'){
+            run_configuration_examples(argv[2]);
         }
         else {
+            bool bnf = false;
+            bool reverse = false;
+            bool ssnf = false;
+            bool use_log = false;
+            map<string, bool> settings;
+
+            for (int i = 2; i < argc; i++) {
+                settings[argv[i]] = true;
+            }
+
+            if (argc > 2 && ::strcmp(argv[2],"-all") == 0) {
+                bnf = true;
+                reverse = true;
+                ssnf = true;
+            }
+            if (settings.find("-bnf") != settings.end())
+                bnf = true;
+            if (settings.find("-reverse") != settings.end()) {
+                reverse = true;
+                bnf = true;
+            }
+
+            if (settings.find("-ssnf") != settings.end())
+                ssnf = true;
+            if (settings.find("-log") != settings.end())
+                use_log = true;
+
             string regex;
             cin >> regex;
-            match(regex);
+            match(regex, reverse, bnf, ssnf, use_log);
         }
     }
     else if (argc > 1 && ::strcmp(argv[1],"-test-bnf") == 0) {
-            run_examples();
+        run_bnf_test();
     }
     else {
+        bool use_log = false;
+        if (argc > 2 && ::strcmp(argv[2],"-log") == 0)
+            use_log = true;
+
         string regexp_str;
         cin >> regexp_str;
         Regexp* regexp = Regexp::parse_regexp(regexp_str);
         regexp->is_backref_correct();
-        auto *bnf_regex = regexp->bnf();
+
+        auto *bnf_regex = regexp->bnf(use_log);
         if (!bnf_regex->is_bad_bnf) {
             auto bnf_str = bnf_regex->to_string();
             cout << "BNF: " << bnf_str << endl;
@@ -90,7 +72,7 @@ int main(int argc, char *argv[]) {
             regexp = Regexp::parse_regexp(regexp_str);
             regexp->is_backref_correct();
 
-            bnf_regex = regexp->bnf();
+            bnf_regex = regexp->bnf(use_log);
             if (!bnf_regex->is_bad_bnf) {
                 auto bnf_str =bnf_regex->to_string();
                 cout << "BNF: " << bnf_str << endl;
