@@ -300,7 +300,10 @@ Regexp *Regexp::open_kleene_with_read(set<string> vars, Regexp* parent, list<Reg
         auto *b_alt = new Regexp(alternationExpr);
 
         for (auto *sub_r: sub_regexp->sub_regexps) {
-            set<string> sub_read(sub_r->maybe_read.begin(), sub_r->maybe_read.end());
+            set<string> sub_read;
+            for (const auto& refs: sub_r->maybe_read) {
+                sub_read.insert(refs.first);
+            }
             intersect_sets(sub_read, vars);
             if (sub_read.empty()) {
                 a_alt->sub_regexps.push_back(sub_r);

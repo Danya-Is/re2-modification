@@ -1,5 +1,77 @@
+#include <algorithm>
 #include "regex.h"
 
+void Regexp::_update(set<Regexp*>& nested_inits, set<Regexp*>& refs, set<string> &names) {
+    // набор обратных ссылок
+    set<Regexp*> new_set;
+    set<string> new_names;
+
+
+    for (auto *ref: refs) {
+        Regexp* new_init = nullptr;
+        if (ref->reference_to != nullptr && nested_inits.find(ref->reference_to) == nested_inits.end()) {
+            new_init = ref->reference_to;
+        }
+        else if (initialized.find(ref->variable) != initialized.end()) {
+            auto* lastinit= initialized[ref->variable].back();
+            if (nested_inits.find(lastinit) == nested_inits.end())
+                new_init = lastinit;
+        }
+        if (new_init != nullptr) {
+            nested_inits.insert(new_init);
+            for (const auto& new_refs: new_init->maybe_read) {
+                for (auto *new_ref: new_refs.second) {
+                    new_set.insert(new_ref);
+                    new_names.insert(new_ref->variable);
+                }
+            }
+        }
+
+    }
+    refs = new_set;
+    names = new_names;
+}
+
+bool Regexp::_is_rw_block_cyclic(Regexp* rw_block) {
+    auto start_name = rw_block->variable;
+    set<Regexp*> refs;
+    set<Regexp*> nested_inits{rw_block};
+    set<string> names;
+    for (const auto& reflist: rw_block->maybe_read) {
+        for (auto ref: reflist.second) {
+            refs.insert(ref);
+            names.insert(ref->variable);
+        }
+    }
+
+    while (!names.empty() && names.find(start_name) == names.end()) {
+        sub_regexp->_update(nested_inits, refs, names);
+    }
+
+    if (names.empty())
+        return false;
+    else
+        return true;
+}
+
+bool Regexp::_is_rw_acreg() {
+    set<Regexp*> rw_inits;
+    map<string, Regexp*> empty_map;
+    bind_init_to_read(empty_map);
+    for (const auto& rw_var: sub_regexp->rw_vars){
+        if (sub_regexp->initialized.find(rw_var) != sub_regexp->initialized.end()) {
+            for (auto *init: sub_regexp->initialized[rw_var]){
+                rw_inits.insert(init);
+            }
+        }
+    }
+
+    for (auto *rw_init: rw_inits) {
+        if (_is_rw_block_cyclic(rw_init))
+            return false;
+    }
+    return true;
+}
 
 bool Regexp::is_acreg() {
     if (regexp_type == epsilon || regexp_type == literal || regexp_type == reference)
@@ -12,10 +84,12 @@ bool Regexp::is_acreg() {
         return true;
     }
     else if (regexp_type == kleeneStar || regexp_type == kleenePlus) {
-        return sub_regexp->is_acreg();
+        if (!sub_regexp->rw_vars.empty())
+            return _is_rw_acreg();
+        else
+            return sub_regexp->is_acreg();
     }
     else if (regexp_type == backreferenceExpr) {
-        auto f = maybe_read.find(variable) == maybe_read.end();
         return (sub_regexp->is_acreg() && maybe_read.find(variable) == maybe_read.end());
     }
 }
@@ -29,7 +103,7 @@ map<string, list<string>> Regexp::get_inner_reads() {
         }
         if (regexp_type == backreferenceExpr) {
             for (auto new_read: maybe_read)
-                inner_reads[variable].push_back(new_read);
+                inner_reads[variable].push_back(new_read.first);
         }
     }
     return inner_reads;
@@ -43,14 +117,14 @@ bool Regexp::is_cross_references() {
     for (auto *sub_r: sub_regexps) {
         for (const auto& new_read: sub_r->maybe_read) {
             // ссылка была проинициализирована с зависимостью от другого чтения
-            if (inner_reads.find(new_read) != inner_reads.end()) {
-                auto dep_reads = inner_reads[new_read];
+            if (inner_reads.find(new_read.first) != inner_reads.end()) {
+                auto dep_reads = inner_reads[new_read.first];
                 for (const auto& dep_read: dep_reads) {
                     // и это чтение было повторно инициализировано до использования той ссылки
                     if (init.find(dep_read) != init.end())
                         return true;
                 }
-                inner_reads.erase(new_read);
+                inner_reads.erase(new_read.first);
             }
         }
         if (!sub_r->initialized.empty()) {
@@ -151,15 +225,15 @@ void Regexp::concat_vars(Regexp *regexp) {
         union_sets(definitely_uninit_read, new_definitely_uninited_read);
 
         for (const auto& now_maybe_read: regexp->maybe_read) {
-            if (definitely_unread_init.find(now_maybe_read) != definitely_unread_init.end()) {
-                definitely_unread_init.erase(now_maybe_read);
+            if (definitely_unread_init.find(now_maybe_read.first) != definitely_unread_init.end()) {
+                definitely_unread_init.erase(now_maybe_read.first);
             }
         }
         union_sets(definitely_unread_init, regexp->definitely_unread_init);
 
         concat_maps(initialized, regexp->initialized);
         union_sets(read, regexp->read);
-        union_sets(maybe_read, regexp->maybe_read);
+        concat_maps(maybe_read, regexp->maybe_read);
         union_sets(maybe_initialized, regexp->maybe_initialized);
     }
 }
@@ -173,7 +247,7 @@ void Regexp::alt_vars(Regexp *regexp) {
     union_sets(definitely_uninit_read, regexp->definitely_uninit_read);
 
     intersect_sets(read, regexp->read);
-    union_sets(maybe_read, regexp->maybe_read);
+    concat_maps(maybe_read, regexp->maybe_read);
     union_sets(maybe_initialized, regexp->maybe_initialized);
 }
 
@@ -200,7 +274,7 @@ void Regexp::copy_vars(Regexp *regexp) {
     if (regexp_type != alternationExpr)
         concat_maps(initialized, regexp->initialized);
     union_sets(read, regexp->read);
-    union_sets(maybe_read, regexp->maybe_read);
+    concat_maps(maybe_read, regexp->maybe_read);
     union_sets(maybe_initialized, regexp->maybe_initialized);
     union_sets(definitely_uninit_read, regexp->definitely_uninit_read);
 }

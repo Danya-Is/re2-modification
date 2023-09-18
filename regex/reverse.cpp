@@ -56,45 +56,34 @@ Regexp *Regexp::_reverse() {
     }
 }
 
-Regexp *Regexp::replace_read_write(set<Regexp *> &initialized_in_reverse) {
-    if (regexp_type == epsilon || regexp_type == literal) {
+Regexp *Regexp::replace_read_write(set<Regexp *> &r_init) {
+    if (regexp_type == epsilon || regexp_type == literal)
         return this;
-    }
     else if (regexp_type == reference) {
-        if (initialized_in_reverse.find(reference_to) == initialized_in_reverse.end()) {
-//            auto *new_r = new Regexp(backreferenceExpr);
-//            new_r->sub_regexp = reference_to->reverse(initialized_in_reverse);
-//            new_r->variable = reference_to->variable;
-
-            initialized_in_reverse.insert(reference_to);
-            reference_to->sub_regexp = reference_to->sub_regexp->replace_read_write(initialized_in_reverse);
+        if (r_init.find(reference_to) == r_init.end()) {
+            r_init.insert(reference_to);
+            reference_to->sub_regexp = reference_to->sub_regexp->replace_read_write(r_init);
 
             return reference_to;
-        }
-        else {
+        } else
             return this;
-        }
-    }
-    else if (regexp_type == backreferenceExpr) {
-        if (initialized_in_reverse.find(this) == initialized_in_reverse.end()) {
-            initialized_in_reverse.insert(this);
+    } else if (regexp_type == backreferenceExpr) {
+        if (r_init.find(this) == r_init.end()) {
+            r_init.insert(this);
             return this;
-        }
-        else{
+        } else{
             auto *new_r = new Regexp(reference);
             new_r->variable = variable;
             return new_r;
         }
-    }
-    else if (regexp_type == kleeneStar || regexp_type == kleenePlus) {
+    } else if (regexp_type == kleeneStar || regexp_type == kleenePlus) {
         auto *new_r = new Regexp(regexp_type);
-        new_r->sub_regexp = sub_regexp->replace_read_write(initialized_in_reverse);
+        new_r->sub_regexp = sub_regexp->replace_read_write(r_init);
         return new_r;
-    }
-    else if (regexp_type == concatenationExpr || regexp_type == alternationExpr) {
+    } else if (regexp_type == concatenationExpr || regexp_type == alternationExpr) {
         auto *new_r = new Regexp(regexp_type);
         for (auto *sub_r: sub_regexps) {
-            auto *new_sub_r = sub_r->replace_read_write(initialized_in_reverse);
+            auto *new_sub_r = sub_r->replace_read_write(r_init);
             new_r->sub_regexps.push_back(new_sub_r);
         }
         return new_r;

@@ -39,6 +39,7 @@ def pumpimg(n, pump):
 
 example_number = sys.argv[1]
 xs = []
+ys = []
 mfa_r = ""
 r = ""
 
@@ -59,26 +60,24 @@ with open(f'test/example_{example_number}/regexp.txt', 'r') as file, \
     while execute_time < 0.5 and len(string) < len_limit:
         xs.append(len(string))
         execute_time = match_timer(r, string)
-        res_file.write(str(execute_time) + '\n')
+        ys.append(execute_time)
+        res_file.write(f"{len(string)}, {(execute_time)}\n")
         count += 1
 
         if count % 10 == 0:
-            pump_size *= 2
+            pump_step *= 2
 
         pump_size += pump_step
         string = prefix + pumpimg(pump_size, pump) + suffix
 
 
-with open(f'test/example_{example_number}/python_results.txt', 'r') as res_file1, \
-        open(f'test/example_{example_number}/diploma_results.txt', 'r') as res_file2, \
+with open(f'test/example_{example_number}/diploma_results.txt', 'r') as res_file2, \
         open(f'test/example_{example_number}/diploma_bnf_results.txt', 'r') as res_file3, \
         open(f'test/example_{example_number}/diploma_reverse_results.txt', 'r') as res_file4:
-    ys1 = res_file1.read().split()
+
     lines2 = res_file2.read().split('\n')
     lines3 = res_file3.read().split('\n')
     lines4 = res_file4.read().split('\n')
-
-    ys1 = [float(y) for y in ys1]
 
     points2 = list(zip(*([line.split(' ') for line in lines2][:-1])))
     points2[0] = [int(y) for y in points2[0]]
@@ -106,9 +105,9 @@ with open(f'test/example_{example_number}/python_results.txt', 'r') as res_file1
     axs[1][0].set(xlabel='Length, chars', ylabel='Time, seconds')
     axs[1][0].set_title("diploma reverse")
 
-    axs[1][1].plot(xs[:len(ys1)], ys1)
+    axs[1][1].plot(xs[:len(ys)], ys)
     axs[1][1].set(xlabel='Length, chars', ylabel='Time, seconds')
     axs[1][1].set_title("python")
 
     plt.savefig(f'test/examples/image_{example_number}.png')
-    # plt.show()
+    plt.show()

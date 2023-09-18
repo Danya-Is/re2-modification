@@ -47,6 +47,20 @@ int main(int argc, char *argv[]) {
     else if (argc > 1 && ::strcmp(argv[1],"-test-bnf") == 0) {
         run_bnf_test();
     }
+    else if (argc > 1 && ::strcmp(argv[1],"-test-acreg") == 0) {
+        string regexp_str;
+        cin >> regexp_str;
+        Regexp* regexp = Regexp::parse_regexp(regexp_str);
+        regexp->is_backref_correct();
+        cout << "Is ACREG: " << regexp->is_acreg() << endl;
+
+        while (regexp_str != "exit") {
+            cin >> regexp_str;
+            regexp = Regexp::parse_regexp(regexp_str);
+            regexp->is_backref_correct();
+            cout << "Is ACREG: " << regexp->is_acreg() << endl;
+        }
+    }
     else {
         bool use_log = false;
         if (argc > 2 && ::strcmp(argv[2],"-log") == 0)

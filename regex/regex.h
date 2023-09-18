@@ -85,10 +85,8 @@ public:
     bool is_read; // backreferenceExpr
     Regexp* reference_to; // reference
 
-    //    TODO
-    bool have_backreference;
-
     bool is_one_unamb = false;
+    bool have_backreference = false;
 
     /// регулярка не обращается в текущей версии алгоритма
     bool is_bad_bnf = false;
@@ -104,7 +102,7 @@ public:
     /// возможно инициализированные
     set<string> maybe_initialized;
     /// возможно прочитанные
-    set<string> maybe_read;
+    map<string, list<Regexp*>> maybe_read;
 
     /// есть ли в регулярка (конкатенации) путь при котором переменная может оказать неинициализированной `({}:1&1|a)&1`
     set<string> uninited_read;
@@ -213,24 +211,27 @@ public:
     /// parent важен только если это конкатенация (rw блоки)
     Regexp* _bnf(Regexp* parent, bool under_kleene = false, list<Regexp*>::iterator cur_position = list<Regexp*>().begin());
 
-    Regexp* replace_read_write(set<Regexp*>& initialized_in_reverse);
+    Regexp* replace_read_write(set<Regexp*>& r_init);
     Regexp* _reverse();
     Regexp* reverse();
 
+    void _update(set<Regexp *>&, set<Regexp *>&, set<string>&);
+    bool _is_rw_block_cyclic(Regexp*);
+    bool _is_rw_acreg();
     bool is_acreg();
 
     void bind_init_to_read(map<string, Regexp *>& init);
 
     BinaryTree* to_binary_tree();
 
-    Automata *compile(bool &is_mfa, bool use_reverse, bool use_bnf, bool use_ssnf);
+    Automata *compile(bool &is_mfa, bool use_reverse, bool use_bnf, bool use_ssnf, bool use_log=false);
 };
 
 void run_bnf_test();
 void run_example(const string& number);
 void run_configuration_examples(const string& number);
 
-void match(string regexp_str, bool reverse, bool bnf, bool ssnf);
+void match(string regexp_str, bool reverse, bool bnf, bool ssnf, bool use_log=false);
 
 void match_gt(string regexp_str);
 

@@ -96,13 +96,9 @@ void Regexp::_is_backref_correct(set<string> &initialized_vars,
     }
     else if (regexp_type == reference) {
         read.insert(variable);
-        maybe_read.insert(variable);
+        maybe_read[variable].push_back(this);
         uninited_read.insert(variable);
         definitely_uninit_read.insert(variable);
-
-//        if (initialized_vars.find(variable) == initialized_vars.end()) {
-//            read_before_init.insert(variable);
-//        }
     }
     else if (regexp_type == alternationExpr || regexp_type == concatenationExpr) {
         int i = 0;
@@ -263,17 +259,16 @@ BinaryTree *Regexp::to_binary_tree() {
     return tr;
 }
 
-Automata * Regexp::compile(bool &is_mfa, bool use_reverse, bool use_bnf, bool use_ssnf) {
+Automata * Regexp::compile(bool &is_mfa, bool use_reverse, bool use_bnf, bool use_ssnf, bool use_log) {
     is_backref_correct();
     auto *bt = to_binary_tree();
-//    bt = bt->toSSNF();
 
     if (!maybe_initialized.empty() || !maybe_read.empty()) {
         cout << "Используется память" << endl;
         is_mfa = true;
         bool is_one_unam = bt->is_one_unambiguity();
         if (!is_one_unam && use_reverse) {
-            auto* bnf_regexp = bnf();
+            auto* bnf_regexp = bnf(use_log);
 
             if (!bnf_regexp->is_bad_bnf) {
                 cout << "BNF: " << bnf_regexp->to_string() << endl;
@@ -302,7 +297,7 @@ Automata * Regexp::compile(bool &is_mfa, bool use_reverse, bool use_bnf, bool us
                 this->is_one_unamb = true;
             }
             if (use_bnf) {
-                auto* bnf_regex = bnf();
+                auto* bnf_regex = bnf(use_log);
                 bt = bnf_regex->to_binary_tree();
             }
             if (use_ssnf)

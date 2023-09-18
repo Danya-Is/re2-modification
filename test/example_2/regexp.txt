@@ -1,2 +1,2 @@
 {(a|bb)*}:1aaba(&1|bb*aa)*
-(a|bb)*aaba(\1|bb*aa)*
+((a|bb)*)aaba(\1|bb*aa)*

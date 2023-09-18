@@ -1,4 +1,5 @@
 #include <utility>
+#include <iostream>
 
 #include "regex.h"
 #include "../bt/binary_tree.h"
@@ -11,9 +12,7 @@ Regexp* Regexp::parse_regexp(string &s) {
 
     while (!s.empty()) {
         char c = s[0];
-        if (c == ' ') {
-            continue;
-        }
+        if (c == ' ') {}
         if (c == '*' || c == '+') {
             regexp->do_kleene(c);
         } else if (c == '(') {
@@ -23,62 +22,47 @@ Regexp* Regexp::parse_regexp(string &s) {
             regexp->do_concatenation();
         } else if (c == ')') {
             regexp->do_collapse();
-        }
-        else if (c == '['){
+        } else if (c == '['){
             auto* re = new Regexp(leftSquareBr);
             regexp->sub_regexps.push_back(re);
-        }
-        else if (c == ']') {
+        } else if (c == ']') {
             regexp->do_enumeration();
-        }
-        else if (c == '-') {
+        } else if (c == '-') {
             auto* re = new Regexp(dash);
             regexp->sub_regexps.push_back(re);
-        }
-        else if (c == '{') {
+        } else if (c == '{') {
             auto* re = new Regexp(leftBrace);
             regexp->sub_regexps.push_back(re);
-        }
-        else if (c == '}') {
+        } else if (c == '}') {
             s.erase(0, 1);
             string tmp = substr(s, 1);
-            if (tmp != ":") {
-                printf("Expected :");
-            }
+            if (tmp != ":")
+                cout << "Expected :";
             s.erase(0, 1);
             string name  = substr(s, 1);
             regexp->do_backreference(name);
-        }
-        else if (c == '&') {
+        } else if (c == '&') {
             s.erase(0, 1);
             string name  = substr(s, 1);
             auto* new_re = new Regexp(reference);
             new_re->variable = name;
             regexp->sub_regexps.push_back(new_re);
             regexp->have_backreference = true;
-        }
-        else if ((c >= 'a' and c <= 'z') or c == '.') {
+        } else if ((c >= 'a' and c <= 'z') or c == '.') {
             auto* re = new Regexp(literal);
             re->rune = c;
             regexp->sub_regexps.push_back(re);
-        }
-        else {
-            printf("Unexpected literal %c", c);
+        } else {
+            cout <<"Unexpected literal" << c;
         }
         s.erase(0, 1);
     }
-    if (regexp->sub_regexps.size() == 1 && regexp->sub_regexps.front()->regexp_type == literal) {
-        char c = regexp->sub_regexps.back()->rune;
-        regexp->rune = c;
-        regexp->regexp_type = literal;
-    }
-    else if (regexp->sub_regexps.size() > 1) {
+    if (regexp->sub_regexps.size() > 1) {
         regexp->regexp_type = concatenationExpr;
     }
     if (regexp->regexp_type == rootExpr && regexp->sub_regexps.size() == 1) {
         auto* child = regexp->sub_regexps.back();
         child->regexp_str = regexp->regexp_str;
-        child->have_backreference = regexp->have_backreference;
         regexp = child;
     }
     return regexp;
